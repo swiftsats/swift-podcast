@@ -2,7 +2,6 @@ import { MessageCircle, Zap, Share, Clock } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useRecentZapActivity } from '@/hooks/useZapLeaderboard';
@@ -40,7 +39,7 @@ function ActivityItem({ userPubkey, type, amount, episodeId, timestamp }: Activi
     
     switch (type) {
       case 'zap':
-        return `zapped${episodeTitle}${amount ? ` ${amount} sats` : ''}`;
+        return `zapped${episodeTitle}${amount ? ` ${formatAmount(amount)} sats` : ''}`;
       case 'comment':
         return `commented on${episodeTitle}`;
       case 'repost':
@@ -73,11 +72,6 @@ function ActivityItem({ userPubkey, type, amount, episodeId, timestamp }: Activi
             <span className="font-medium">{displayName}</span>{' '}
             <span className="text-muted-foreground">{getActivityText()}</span>
           </p>
-          {amount && type === 'zap' && (
-            <Badge variant="secondary" className="text-xs">
-              {formatAmount(amount)}
-            </Badge>
-          )}
         </div>
         
         <div className="flex items-center space-x-1 text-xs text-muted-foreground">
@@ -163,7 +157,7 @@ export function RecentActivity({
                 userPubkey={activity.userPubkey}
                 type="zap"
                 amount={activity.amount}
-                episodeId={activity.episodeId}
+                episodeId={activity.episodeId || undefined}
                 timestamp={activity.timestamp}
               />
             ))}

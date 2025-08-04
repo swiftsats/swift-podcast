@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { ZapLeaderboardEntry } from '@/types/podcast';
 import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
+import { extractZapAmount, extractZapperPubkey, validateZapEvent, extractZappedEventId } from '@/lib/zapUtils';
 
 /**
  * Hook to fetch zap leaderboard for the podcast
@@ -29,13 +30,25 @@ export function useZapLeaderboard(limit: number = 10) {
       }>();
 
       zapEvents.forEach(zapEvent => {
-        const amountTag = zapEvent.tags.find(([name]) => name === 'amount');
-        const amount = amountTag ? parseInt(amountTag[1]) : 0;
+        // Validate the zap event structure
+        if (!validateZapEvent(zapEvent)) {
+          console.warn('Invalid zap event structure:', zapEvent.id);
+          return;
+        }
+
+        // Extract amount using proper bolt11/description parsing
+        const amount = extractZapAmount(zapEvent);
         
-        const senderPubkey = zapEvent.pubkey;
+        // Extract the actual zapper's pubkey (from P tag, not event pubkey)
+        const zapperPubkey = extractZapperPubkey(zapEvent);
+        if (!zapperPubkey) {
+          console.warn('No zapper pubkey found in zap event:', zapEvent.id);
+          return;
+        }
+        
         const zapDate = new Date(zapEvent.created_at * 1000);
 
-        const existing = zapAggregation.get(senderPubkey);
+        const existing = zapAggregation.get(zapperPubkey);
         if (existing) {
           existing.totalAmount += amount;
           existing.zapCount += 1;
@@ -43,7 +56,7 @@ export function useZapLeaderboard(limit: number = 10) {
             existing.lastZapDate = zapDate;
           }
         } else {
-          zapAggregation.set(senderPubkey, {
+          zapAggregation.set(zapperPubkey, {
             totalAmount: amount,
             zapCount: 1,
             lastZapDate: zapDate
@@ -85,26 +98,30 @@ export function useRecentZapActivity(limit: number = 20) {
         limit: limit
       }], { signal });
 
-      // Sort by creation time (most recent first)
+      // Filter and sort by creation time (most recent first)
       return zapEvents
+        .filter(validateZapEvent) // Only include valid zap events
         .sort((a, b) => b.created_at - a.created_at)
         .map(zapEvent => {
-          const amountTag = zapEvent.tags.find(([name]) => name === 'amount');
-          const amount = amountTag ? parseInt(amountTag[1]) : 0;
+          // Extract amount using proper bolt11/description parsing
+          const amount = extractZapAmount(zapEvent);
           
-          // Try to find the episode being zapped
-          const eventTag = zapEvent.tags.find(([name]) => name === 'e');
-          const episodeId = eventTag?.[1];
+          // Extract the actual zapper's pubkey (from P tag, not event pubkey)
+          const zapperPubkey = extractZapperPubkey(zapEvent);
+          
+          // Extract the episode being zapped
+          const episodeId = extractZappedEventId(zapEvent);
 
           return {
             id: zapEvent.id,
-            userPubkey: zapEvent.pubkey,
+            userPubkey: zapperPubkey || zapEvent.pubkey, // Fallback to event pubkey if no P tag
             amount,
             episodeId,
             timestamp: new Date(zapEvent.created_at * 1000),
             zapEvent
           };
-        });
+        })
+        .filter(activity => activity.userPubkey); // Remove entries without valid zapper pubkey
     },
     staleTime: 60000, // 1 minute
   });

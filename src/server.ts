@@ -129,7 +129,7 @@ async function createServer() {
   // Serve static files from dist in production
   if (isProduction) {
     const expressStatic = await import('express').then(m => m.default);
-    app.use(expressStatic('dist'));
+    app.use(expressStatic.static('dist'));
   }
 
   // Serve index.html for all other routes

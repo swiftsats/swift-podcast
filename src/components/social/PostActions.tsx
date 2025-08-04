@@ -85,12 +85,12 @@ export function PostActions({ event, className }: PostActionsProps) {
       const likes = interactions.filter(e => e.kind === 7).length;
       
       // Count zaps and calculate total sats
-      const zaps = interactions.filter(e => e.kind === 9735);
+      const { extractZapAmount, validateZapEvent } = await import('@/lib/zapUtils');
+      const zaps = interactions.filter(e => e.kind === 9735).filter(validateZapEvent);
       const zapCount = zaps.length;
       const totalSats = zaps.reduce((total, zap) => {
-        // Extract amount from bolt11 invoice or amount tag
-        const amountTag = zap.tags.find(tag => tag[0] === 'amount')?.[1];
-        const amount = amountTag ? parseInt(amountTag) / 1000 : 0; // Convert msats to sats
+        // Use our consistent zap amount extraction utility
+        const amount = extractZapAmount(zap);
         return total + amount;
       }, 0);
 

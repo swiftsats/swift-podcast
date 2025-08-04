@@ -1,21 +1,19 @@
-import { useState } from 'react';
 import { MessageCircle, Heart, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
 import { ZapButton } from '@/components/ZapButton';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { useNostr } from '@nostrify/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useComments } from '@/hooks/useComments';
 import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { PodcastEpisode } from '@/types/podcast';
 import { cn } from '@/lib/utils';
+import { extractZapAmount, validateZapEvent } from '@/lib/zapUtils';
 
 interface InteractionCounts {
-  replies: number;
   likes: number;
   zaps: number;
   totalSats: number;
@@ -28,6 +26,8 @@ interface UserInteractions {
 interface EpisodeActionsProps {
   episode: PodcastEpisode;
   className?: string;
+  showComments?: boolean;
+  onToggleComments?: () => void;
 }
 
 // Create a NostrEvent-like object from PodcastEpisode
@@ -46,18 +46,19 @@ function createEventFromEpisode(episode: PodcastEpisode): NostrEvent {
   } as NostrEvent;
 }
 
-export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
+export function EpisodeActions({ episode, className, showComments, onToggleComments }: EpisodeActionsProps) {
   const { user } = useCurrentUser();
   const { mutate: createEvent } = useNostrPublish();
   const { toast } = useToast();
   const { nostr } = useNostr();
   const queryClient = useQueryClient();
 
-  const [replyDialogOpen, setReplyDialogOpen] = useState(false);
-  const [replyContent, setReplyContent] = useState('');
-  const [isSubmittingReply, setIsSubmittingReply] = useState(false);
 
   const event = createEventFromEpisode(episode);
+
+  // Query for episode comments (NIP-22 comments)
+  const { data: commentsData } = useComments(event);
+  const commentCount = commentsData?.topLevelComments?.length || 0;
 
   // Query for user's interactions with this episode
   const { data: userInteractions } = useQuery<UserInteractions>({
@@ -91,82 +92,27 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
 
       // Query for all interactions with this episode
       const interactions = await nostr.query([{
-        kinds: [1, 7, 9735], // Replies, likes, zaps
+        kinds: [7, 9735], // Likes, zaps (no longer counting replies here)
         '#e': [episode.eventId],
         limit: 500
       }], { signal });
 
-      const replies = interactions.filter(e => e.kind === 1).length;
       const likes = interactions.filter(e => e.kind === 7).length;
 
       // Count zaps and calculate total sats
-      const zaps = interactions.filter(e => e.kind === 9735);
+      const zaps = interactions.filter(e => e.kind === 9735).filter(validateZapEvent);
       const zapCount = zaps.length;
       const totalSats = zaps.reduce((total, zap) => {
-        // Extract amount from bolt11 invoice or amount tag
-        const amountTag = zap.tags.find(tag => tag[0] === 'amount')?.[1];
-        const amount = amountTag ? parseInt(amountTag) / 1000 : 0; // Convert msats to sats
+        // Use our consistent zap amount extraction utility
+        const amount = extractZapAmount(zap);
         return total + amount;
       }, 0);
 
-      return { replies, likes, zaps: zapCount, totalSats };
+      return { likes, zaps: zapCount, totalSats };
     },
     staleTime: 60000, // 1 minute
   });
 
-  const handleReply = async () => {
-    if (!user || !replyContent.trim()) return;
-
-    setIsSubmittingReply(true);
-    try {
-      // Create reply to episode (NIP-22 comment) - reference regular event
-      const replyTags: string[][] = [
-        ['e', episode.eventId], // Reference the episode event
-        ['k', '54'], // Kind of the event being commented on (NIP-54)
-        ['p', episode.authorPubkey] // Tag the episode author
-      ];
-
-      // Optimistically update interaction counts
-      queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {
-        if (!old) return { replies: 1, likes: 0, zaps: 0, totalSats: 0 };
-        return { ...old, replies: old.replies + 1 };
-      });
-
-      // Publish the comment
-      await createEvent({
-        kind: 1111, // NIP-22 comment
-        content: replyContent,
-        tags: replyTags
-      });
-
-      setReplyContent('');
-      setReplyDialogOpen(false);
-
-      // Delay invalidation to allow network propagation
-      setTimeout(() => {
-        queryClient.invalidateQueries({ queryKey: ['episode-interaction-counts', episode.eventId] });
-      }, 2000);
-
-      toast({
-        title: "Comment posted!",
-        description: "Your comment has been published to the network.",
-      });
-    } catch {
-      // Revert optimistic updates on error
-      queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {
-        if (!old) return { replies: 0, likes: 0, zaps: 0, totalSats: 0 };
-        return { ...old, replies: Math.max(0, old.replies - 1) };
-      });
-
-      toast({
-        title: "Failed to post comment",
-        description: "Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmittingReply(false);
-    }
-  };
 
   const handleLike = async () => {
     if (!user) {
@@ -194,7 +140,7 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
 
       // Optimistically update interaction counts
       queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {
-        if (!old) return { replies: 0, likes: 1, zaps: 0, totalSats: 0 };
+        if (!old) return { likes: 1, zaps: 0, totalSats: 0 };
         return { ...old, likes: old.likes + 1 };
       });
 
@@ -226,7 +172,7 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
       });
 
       queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {
-        if (!old) return { replies: 0, likes: 0, zaps: 0, totalSats: 0 };
+        if (!old) return { likes: 0, zaps: 0, totalSats: 0 };
         return { ...old, likes: Math.max(0, old.likes - 1) };
       });
 
@@ -264,12 +210,18 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
       <Button
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-blue-500 h-8 px-2"
-        onClick={() => setReplyDialogOpen(true)}
+        className={cn(
+          "text-muted-foreground hover:text-blue-500 h-8 px-2",
+          showComments && "text-blue-500"
+        )}
+        onClick={onToggleComments}
       >
-        <MessageCircle className="w-4 h-4 mr-1" />
+        <MessageCircle className={cn(
+          "w-4 h-4 mr-1",
+          showComments && "fill-current"
+        )} />
         <span className="text-xs">
-          {interactionCounts?.replies || 0}
+          {commentCount}
         </span>
       </Button>
 
@@ -304,7 +256,7 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
         onZapSuccess={(amount: number) => {
           // Optimistically update interaction counts when zap succeeds
           queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {
-            if (!old) return { replies: 0, likes: 0, zaps: 1, totalSats: amount };
+            if (!old) return { likes: 0, zaps: 1, totalSats: amount };
             return { ...old, zaps: old.zaps + 1, totalSats: old.totalSats + amount };
           });
         }}
@@ -320,45 +272,6 @@ export function EpisodeActions({ episode, className }: EpisodeActionsProps) {
         <Share className="w-4 h-4" />
       </Button>
 
-      {/* Comment Dialog */}
-      <Dialog open={replyDialogOpen} onOpenChange={setReplyDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Comment on Episode</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div className="bg-muted p-3 rounded-lg">
-              <h4 className="font-semibold text-sm mb-1">{episode.title}</h4>
-              <p className="text-sm text-muted-foreground line-clamp-2">
-                {episode.description}
-              </p>
-            </div>
-
-            <Textarea
-              placeholder="Write your comment..."
-              value={replyContent}
-              onChange={(e) => setReplyContent(e.target.value)}
-              className="min-h-[100px]"
-            />
-
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setReplyDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleReply}
-                disabled={!replyContent.trim() || isSubmittingReply}
-              >
-                {isSubmittingReply ? "Posting..." : "Comment"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

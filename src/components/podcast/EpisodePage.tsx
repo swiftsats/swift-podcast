@@ -24,6 +24,7 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
   const { nostr } = useNostr();
   const navigate = useNavigate();
   const [showPlayer, setShowPlayer] = useState(false);
+  const [showComments, setShowComments] = useState(true);
 
   // Query for the episode event
   const { data: episodeEvent, isLoading } = useQuery<NostrEvent | null>({
@@ -283,7 +284,11 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
                 </div>
 
                 {/* Social Actions */}
-                <EpisodeActions episode={episode} />
+                <EpisodeActions 
+                  episode={episode} 
+                  showComments={showComments}
+                  onToggleComments={() => setShowComments(!showComments)}
+                />
               </div>
             </CardContent>
           </Card>
@@ -294,23 +299,25 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
           )}
 
           {/* Comments Section */}
-          <Card>
-            <CardContent className="pt-6">
-              {episodeEvent ? (
-                <CommentsSection
-                  root={episodeEvent}
-                  title="Episode Discussion"
-                  emptyStateMessage="No comments yet"
-                  emptyStateSubtitle="Be the first to share your thoughts about this episode!"
-                  limit={100}
-                />
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>Unable to load comments for this episode.</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {showComments && (
+            <Card>
+              <CardContent className="pt-6">
+                {episodeEvent ? (
+                  <CommentsSection
+                    root={episodeEvent}
+                    title="Episode Discussion"
+                    emptyStateMessage="No comments yet"
+                    emptyStateSubtitle="Be the first to share your thoughts about this episode!"
+                    limit={100}
+                  />
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Unable to load comments for this episode.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
       </main>
     </div>

@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigation } from '@/components/Navigation';
 import { ZapLeaderboard } from '@/components/podcast/ZapLeaderboard';
 import { RecentActivity } from '@/components/podcast/RecentActivity';
+import { EpisodeDiscussions } from '@/components/podcast/EpisodeDiscussions';
 import { PODCAST_CONFIG } from '@/lib/podcastConfig';
 
 const Community = () => {
@@ -61,21 +62,10 @@ const Community = () => {
                 <TabsContent value="discussions" className="space-y-6">
                   <Card>
                     <CardHeader>
-                      <CardTitle>Community Discussions</CardTitle>
+                      <CardTitle>Episode Discussions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="text-center py-12">
-                        <MessageCircle className="w-16 h-16 mx-auto text-muted-foreground mb-4" />
-                        <h3 className="text-lg font-semibold mb-2">Episode Discussions</h3>
-                        <p className="text-muted-foreground mb-6">
-                          Discussions happen on individual episode pages. Visit any episode to join the conversation!
-                        </p>
-                        <Button asChild>
-                          <Link to="/episodes">
-                            Browse Episodes
-                          </Link>
-                        </Button>
-                      </div>
+                      <EpisodeDiscussions limit={15} />
                     </CardContent>
                   </Card>
                 </TabsContent>

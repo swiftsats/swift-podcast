@@ -27,6 +27,7 @@ export interface PodcastEpisode {
   authorPubkey: string;
   createdAt: Date;
   zapCount?: number;
+  totalSats?: number;
   commentCount?: number;
   repostCount?: number;
 }

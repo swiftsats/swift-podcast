@@ -3,6 +3,7 @@ import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { PodcastEpisode, EpisodeSearchOptions } from '@/types/podcast';
 import { getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
+import { extractZapAmount, validateZapEvent } from '@/lib/zapUtils';
 
 /**
  * Validates if a Nostr event is a valid podcast episode (NIP-54)
@@ -130,8 +131,53 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
       // Convert to podcast episodes
       const validEpisodes = Array.from(episodesByTitle.values()).map(eventToPodcastEpisode);
 
+      // Fetch zap data for all episodes in a single query
+      const episodeIds = validEpisodes.map(ep => ep.eventId);
+      
+      let zapData: Map<string, { count: number; totalSats: number }> = new Map();
+      
+      if (episodeIds.length > 0) {
+        try {
+          // Query for all zaps to these episodes
+          const zapEvents = await nostr.query([{
+            kinds: [9735], // Zap receipts
+            '#e': episodeIds, // Episodes being zapped
+            limit: 2000 // High limit to get all zaps
+          }], { signal });
+
+          // Process zap events and group by episode
+          const validZaps = zapEvents.filter(validateZapEvent);
+          
+          validZaps.forEach(zapEvent => {
+            const episodeId = zapEvent.tags.find(([name]) => name === 'e')?.[1];
+            if (!episodeId) return;
+
+            const amount = extractZapAmount(zapEvent);
+            const existing = zapData.get(episodeId) || { count: 0, totalSats: 0 };
+            
+            zapData.set(episodeId, {
+              count: existing.count + 1,
+              totalSats: existing.totalSats + amount
+            });
+          });
+        } catch (error) {
+          console.warn('Failed to fetch zap data for episodes:', error);
+          // Continue without zap data rather than failing completely
+        }
+      }
+
+      // Add zap counts to episodes
+      const episodesWithZaps = validEpisodes.map(episode => {
+        const zaps = zapData.get(episode.eventId);
+        return {
+          ...episode,
+          zapCount: zaps?.count || 0,
+          totalSats: zaps?.totalSats || 0
+        };
+      });
+
       // Apply search filtering
-      let filteredEpisodes = validEpisodes;
+      let filteredEpisodes = episodesWithZaps;
 
       if (options.query) {
         const query = options.query.toLowerCase();

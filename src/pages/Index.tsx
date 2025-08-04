@@ -11,7 +11,6 @@ import { ZapLeaderboard } from '@/components/podcast/ZapLeaderboard';
 import { RecentActivity } from '@/components/podcast/RecentActivity';
 import { ZapDialog } from '@/components/ZapDialog';
 import { AudioPlayer } from '@/components/podcast/AudioPlayer';
-import { ThemeSwitcher } from '@/components/ui/theme-switcher';
 import type { PodcastEpisode } from '@/types/podcast';
 import { useLatestEpisode } from '@/hooks/usePodcastEpisodes';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
@@ -99,7 +98,12 @@ const Index = () => {
                             {latestEpisode.zapCount && latestEpisode.zapCount > 0 && (
                               <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full">
                                 <Zap className="w-3 h-3 text-primary" />
-                                <span className="font-medium">{latestEpisode.zapCount}</span>
+                                <span className="font-medium">
+                                  {latestEpisode.totalSats && latestEpisode.totalSats > 0
+                                    ? `${latestEpisode.totalSats.toLocaleString()} sats`
+                                    : `${latestEpisode.zapCount} zaps`
+                                  }
+                                </span>
                               </div>
                             )}
                           </div>
@@ -241,9 +245,6 @@ const Index = () => {
                 </Button>
               </CardContent>
             </Card>
-
-            {/* Theme Switcher */}
-            <ThemeSwitcher />
 
             {/* Subscribe Links */}
             <Card className="card-hover border-secondary/20 bg-gradient-to-br from-secondary/5 to-transparent">

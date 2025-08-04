@@ -11,6 +11,7 @@ import type { WebLNProvider } from 'webln';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import type { NostrEvent } from '@nostrify/nostrify';
+import { extractZapAmount, validateZapEvent } from '@/lib/zapUtils';
 
 export function useZaps(
   target: Event | Event[],
@@ -79,55 +80,21 @@ export function useZaps(
       return { zapCount: 0, totalSats: 0, zaps: [] };
     }
 
+    // Filter valid zap events and extract amounts
+    const validZaps = zapEvents.filter(validateZapEvent);
+    
     let count = 0;
     let sats = 0;
 
-    zapEvents.forEach(zap => {
+    validZaps.forEach(zap => {
       count++;
-
-      // Try multiple methods to extract the amount:
-
-      // Method 1: amount tag (from zap request, sometimes copied to receipt)
-      const amountTag = zap.tags.find(([name]) => name === 'amount')?.[1];
-      if (amountTag) {
-        const millisats = parseInt(amountTag);
-        sats += Math.floor(millisats / 1000);
-        return;
-      }
-
-      // Method 2: Extract from bolt11 invoice
-      const bolt11Tag = zap.tags.find(([name]) => name === 'bolt11')?.[1];
-      if (bolt11Tag) {
-        try {
-          const invoiceSats = nip57.getSatoshisAmountFromBolt11(bolt11Tag);
-          sats += invoiceSats;
-          return;
-        } catch (error) {
-          console.warn('Failed to parse bolt11 amount:', error);
-        }
-      }
-
-      // Method 3: Parse from description (zap request JSON)
-      const descriptionTag = zap.tags.find(([name]) => name === 'description')?.[1];
-      if (descriptionTag) {
-        try {
-          const zapRequest = JSON.parse(descriptionTag);
-          const requestAmountTag = zapRequest.tags?.find(([name]: string[]) => name === 'amount')?.[1];
-          if (requestAmountTag) {
-            const millisats = parseInt(requestAmountTag);
-            sats += Math.floor(millisats / 1000);
-            return;
-          }
-        } catch (error) {
-          console.warn('Failed to parse description JSON:', error);
-        }
-      }
-
-      console.warn('Could not extract amount from zap receipt:', zap.id);
+      
+      // Use our consistent zap amount extraction utility
+      const amount = extractZapAmount(zap);
+      sats += amount;
     });
 
-
-    return { zapCount: count, totalSats: sats, zaps: zapEvents };
+    return { zapCount: count, totalSats: sats, zaps: validZaps };
   }, [zapEvents, actualTarget]);
 
   const zap = async (amount: number, _comment: string) => {

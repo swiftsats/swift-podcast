@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { Clock, Calendar, Zap, MessageCircle, Share } from 'lucide-react';
+import { Clock, Calendar, MessageCircle, Share } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +9,8 @@ import { ZapButton } from '@/components/ZapButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
 import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
+import { useComments } from '@/hooks/useComments';
+import { cn } from '@/lib/utils';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -26,6 +29,7 @@ export function EpisodeCard({
   onPlayEpisode,
   className
 }: EpisodeCardProps) {
+  const [commentsVisible, setCommentsVisible] = useState(showComments);
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
 
@@ -44,11 +48,21 @@ export function EpisodeCard({
     id: episode.eventId,
     pubkey: episode.authorPubkey,
     created_at: Math.floor(episode.createdAt.getTime() / 1000),
-    kind: 30023, // NIP-23 long-form content
-    tags: [],
+    kind: 54, // NIP-54 podcast episodes
+    tags: [
+      ['title', episode.title],
+      ['audio', episode.audioUrl, episode.audioType || 'audio/mpeg'],
+      ...(episode.description ? [['description', episode.description]] : []),
+      ...(episode.imageUrl ? [['image', episode.imageUrl]] : []),
+      ...episode.tags.map(tag => ['t', tag])
+    ],
     content: episode.content || '',
     sig: ''
   };
+
+  // Get comment data for count - fallback to episode.commentCount if available
+  const { data: commentsData } = useComments(episodeEvent);
+  const commentCount = commentsData?.topLevelComments?.length || episode.commentCount || 0;
 
   // Generate nevent for episode link with relay hints (NIP-54 uses regular events)
   const episodeNevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
@@ -79,18 +93,23 @@ export function EpisodeCard({
               </div>
 
               <div className="flex items-center space-x-1">
-                {episode.zapCount && episode.zapCount > 0 && (
-                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                    <Zap className="w-3 h-3" />
-                    <span>{episode.zapCount}</span>
-                  </div>
-                )}
-                {episode.commentCount && episode.commentCount > 0 && (
-                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                    <MessageCircle className="w-3 h-3" />
-                    <span>{episode.commentCount}</span>
-                  </div>
-                )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "text-muted-foreground hover:text-blue-500 h-6 px-1",
+                    commentsVisible && "text-blue-500"
+                  )}
+                  onClick={() => setCommentsVisible(!commentsVisible)}
+                >
+                  <MessageCircle className={cn(
+                    "w-3 h-3 mr-1",
+                    commentsVisible && "fill-current"
+                  )} />
+                  <span className="text-xs">
+                    {commentCount}
+                  </span>
+                </Button>
               </div>
             </div>
 
@@ -165,6 +184,11 @@ export function EpisodeCard({
             <ZapButton
               target={episodeEvent}
               className="text-xs"
+              zapData={{
+                count: episode.zapCount || 0,
+                totalSats: episode.totalSats || 0,
+                isLoading: false
+              }}
             />
           </div>
 
@@ -173,7 +197,7 @@ export function EpisodeCard({
           </Button>
         </div>
 
-        {showComments && (
+        {commentsVisible && (
           <div className="mt-6 pt-6 border-t">
             <CommentsSection
               root={episodeEvent}
