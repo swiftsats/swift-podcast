@@ -1,5 +1,6 @@
 import type { PodcastEpisode, RSSItem } from '@/types/podcast';
 import { PODCAST_CONFIG } from './podcastConfig';
+import { encodeEventIdAsNevent } from './nip19Utils';
 
 interface PodcastConfig {
   creatorNpub: string;
@@ -76,7 +77,7 @@ function episodeToRSSItem(episode: PodcastEpisode, config?: PodcastConfig): RSSI
   return {
     title: episode.title,
     description: episode.description || '',
-    link: `${window.location.origin}/episode/${episode.id}`, // Simple episode link for RSS compatibility
+    link: `${window.location.origin}/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`, // Use nevent links for better discoverability
     guid: episode.id,
     pubDate: episode.publishDate.toUTCString(),
     author: `${podcastConfig.podcast.email} (${podcastConfig.podcast.author})`,
@@ -167,10 +168,10 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
     <podcast:locked>${podcastConfig.podcast.locked ? 'yes' : 'no'}</podcast:locked>
     ${podcastConfig.podcast.medium ? `<podcast:medium>${escapeXml(podcastConfig.podcast.medium)}</podcast:medium>` : ''}
     ${podcastConfig.podcast.publisher ? `<podcast:publisher>${escapeXml(podcastConfig.podcast.publisher)}</podcast:publisher>` : ''}
-    ${podcastConfig.podcast.license ? 
+    ${podcastConfig.podcast.license ?
       `<podcast:license ${podcastConfig.podcast.license.url ? `url="${escapeXml(podcastConfig.podcast.license.url)}"` : ''}>${escapeXml(podcastConfig.podcast.license.identifier)}</podcast:license>` : ''
     }
-    ${podcastConfig.podcast.location ? 
+    ${podcastConfig.podcast.location ?
       `<podcast:location ${podcastConfig.podcast.location.geo ? `geo="${escapeXml(podcastConfig.podcast.location.geo)}"` : ''} ${podcastConfig.podcast.location.osm ? `osm="${escapeXml(podcastConfig.podcast.location.osm)}"` : ''}>${escapeXml(podcastConfig.podcast.location.name)}</podcast:location>` : ''
     }
     ${podcastConfig.podcast.person && podcastConfig.podcast.person.length > 0 ?
@@ -188,7 +189,7 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
         `<podcast:remoteItem feedGuid="${escapeXml(item.feedGuid)}" ${item.feedUrl ? `feedUrl="${escapeXml(item.feedUrl)}"` : ''} ${item.itemGuid ? `itemGuid="${escapeXml(item.itemGuid)}"` : ''} ${item.medium ? `medium="${escapeXml(item.medium)}"` : ''} />`
       ).join('\n    ') : ''
     }
-    ${podcastConfig.podcast.block ? 
+    ${podcastConfig.podcast.block ?
       `<podcast:block id="${escapeXml(podcastConfig.podcast.block.id)}" ${podcastConfig.podcast.block.reason ? `reason="${escapeXml(podcastConfig.podcast.block.reason)}"` : ''} />` : ''
     }
     ${podcastConfig.podcast.newFeedUrl ? `<podcast:newFeedUrl>${escapeXml(podcastConfig.podcast.newFeedUrl)}</podcast:newFeedUrl>` : ''}

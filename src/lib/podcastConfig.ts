@@ -96,7 +96,7 @@ export const PODCAST_CONFIG: PodcastConfig = {
     email: "creator@podstr.example",
     image: "https://example.com/podcast-artwork.jpg",
     language: "en-us",
-    categories: ["Technology", "Cryptocurrency", "Society & Culture"],
+    categories: ["Technology", "Social Networking", "Society & Culture"],
     explicit: false,
     website: "https://podstr.example",
     copyright: "© 2025 PODSTR Creator",
@@ -139,8 +139,8 @@ export const PODCAST_CONFIG: PodcastConfig = {
  * Nostr event kinds used by PODSTR
  */
 export const PODCAST_KINDS = {
-  /** Addressable podcast episodes with NIP-54 inspired tag structure */
-  EPISODE: 30023,
+  /** NIP-54: Podcast episodes */
+  EPISODE: 54,
   /** NIP-22: Comments on podcast episodes */
   COMMENT: 1111,
   /** Standard text notes that may reference episodes */
