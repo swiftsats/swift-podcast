@@ -74,10 +74,19 @@ interface PodcastConfig {
  */
 function episodeToRSSItem(episode: PodcastEpisode, config?: PodcastConfig): RSSItem {
   const podcastConfig = config || PODCAST_CONFIG;
+  // Get base URL - handle both server and client environments
+  const getBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin;
+    }
+    // Server-side fallback
+    return process.env.BASE_URL || 'https://podstr.example';
+  };
+
   return {
     title: episode.title,
     description: episode.description || '',
-    link: `${window.location.origin}/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`, // Use nevent links for better discoverability
+    link: `${getBaseUrl()}/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`, // Use nevent links for better discoverability
     guid: episode.id,
     pubDate: episode.publishDate.toUTCString(),
     author: `${podcastConfig.podcast.email} (${podcastConfig.podcast.author})`,
@@ -130,7 +139,16 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
     .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime())
     .map(episode => episodeToRSSItem(episode, podcastConfig));
 
-  const baseUrl = window.location.origin;
+  // Get base URL - handle both server and client environments
+  const getBaseUrl = () => {
+    if (typeof window !== 'undefined') {
+      return window.location.origin;
+    }
+    // Server-side fallback
+    return process.env.BASE_URL || 'https://podstr.example';
+  };
+
+  const baseUrl = getBaseUrl();
   const podcastUrl = baseUrl;
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

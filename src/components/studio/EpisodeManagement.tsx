@@ -112,11 +112,21 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
   };
 
   const handleEpisodeUpdated = async () => {
-    // Regenerate RSS feed after update
-    if (episodes) {
-      await genRSSFeed(episodes, podcastConfig);
+    console.log('handleEpisodeUpdated called');
+    try {
+      // Regenerate RSS feed after update
+      if (episodes) {
+        console.log('Regenerating RSS feed...');
+        await genRSSFeed(episodes, podcastConfig);
+        console.log('RSS feed regenerated successfully');
+      }
+      setEpisodeToEdit(null);
+      console.log('Episode edit dialog should close now');
+    } catch (error) {
+      console.error('Error in handleEpisodeUpdated:', error);
+      // Still close the dialog even if RSS generation fails
+      setEpisodeToEdit(null);
     }
-    setEpisodeToEdit(null);
   };
 
   const formatDuration = (seconds?: number): string => {

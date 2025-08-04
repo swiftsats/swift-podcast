@@ -1,8 +1,16 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Headphones, List, Users, MessageSquare, User, Rss, Settings } from 'lucide-react';
+import { useState } from 'react';
+import { Headphones, List, Users, MessageSquare, User, Rss, Settings, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { LoginArea } from '@/components/auth/LoginArea';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { isPodcastCreator } from '@/lib/podcastConfig';
@@ -17,6 +25,7 @@ export function Navigation({ className }: NavigationProps) {
   const { user } = useCurrentUser();
   const podcastConfig = usePodcastConfig();
   const isCreator = user && isPodcastCreator(user.pubkey);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === '/') {
@@ -39,16 +48,16 @@ export function Navigation({ className }: NavigationProps) {
       description: 'Browse all episodes'
     },
     {
-      path: '/community',
-      icon: Users,
-      label: 'Community',
-      description: 'Engage with listeners'
-    },
-    {
       path: '/social',
       icon: MessageSquare,
       label: 'Social Feed',
       description: 'Creator updates'
+    },
+    {
+      path: '/community',
+      icon: Users,
+      label: 'Community',
+      description: 'Engage with listeners'
     }
   ];
 
@@ -117,9 +126,6 @@ export function Navigation({ className }: NavigationProps) {
 
           {/* Right side actions */}
           <div className="flex items-center space-x-2">
-            {/* Theme toggle */}
-            <ThemeToggle />
-
             {/* Secondary nav items */}
             <div className="hidden sm:flex items-center space-x-1">
               {secondaryItems.map((item) => {
@@ -157,7 +163,7 @@ export function Navigation({ className }: NavigationProps) {
 
             {/* Creator studio button */}
             {isCreator && (
-              <Button size="sm" asChild className="btn-secondary focus-ring">
+              <Button size="sm" asChild className="btn-secondary focus-ring hidden sm:flex">
                 <Link to="/studio">
                   <Settings className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Studio</span>
@@ -165,44 +171,125 @@ export function Navigation({ className }: NavigationProps) {
               </Button>
             )}
 
+            {/* Mobile menu button */}
+            <div className="md:hidden">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="sm" className="focus-ring">
+                    <Menu className="w-5 h-5" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                </SheetTrigger>
+              </Sheet>
+            </div>
+
             {/* Login area */}
             <LoginArea className="max-w-60" />
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <nav className="md:hidden mt-4 flex flex-wrap gap-2">
-          {[...navItems, ...secondaryItems.filter(item => !item.external)].map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
+        {/* Mobile Menu Sheet */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetContent side="right" className="w-[300px] sm:w-[350px]">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Headphones className="w-5 h-5" />
+                {podcastConfig.podcast.title}
+              </SheetTitle>
+              <SheetDescription>
+                Navigate through the podcast
+              </SheetDescription>
+            </SheetHeader>
 
-            return (
-              <Button
-                key={item.path}
-                variant={active ? "secondary" : "outline"}
-                size="sm"
-                asChild
-                className={cn(
-                  "flex-1 min-w-0 focus-ring transition-all duration-200",
-                  active && "shadow-sm"
-                )}
-              >
-                <Link to={item.path} className="flex items-center justify-center space-x-1">
-                  <Icon className="w-4 h-4" />
-                  <span className="text-xs truncate">{item.label}</span>
-                </Link>
-              </Button>
-            );
-          })}
+            <div className="mt-6 space-y-4">
+              {/* Main Navigation Items */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-3">Main Navigation</h3>
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.path);
 
-          {/* RSS link for mobile */}
-          <Button variant="outline" size="sm" asChild className="flex-1 min-w-0 focus-ring">
-            <a href="/rss.xml" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center space-x-1">
-              <Rss className="w-4 h-4" />
-              <span className="text-xs">RSS</span>
-            </a>
-          </Button>
-        </nav>
+                  return (
+                    <Button
+                      key={item.path}
+                      variant={active ? "secondary" : "ghost"}
+                      size="sm"
+                      asChild
+                      className={cn(
+                        "w-full justify-start focus-ring transition-all duration-200",
+                        active && "bg-secondary text-secondary-foreground shadow-sm"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Link to={item.path} className="flex items-center space-x-3">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </Link>
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Secondary Navigation Items */}
+              <div className="space-y-2">
+                <h3 className="text-sm font-medium text-muted-foreground px-3">More</h3>
+                {secondaryItems.map((item) => {
+                  const Icon = item.icon;
+                  const active = !item.external && isActive(item.path);
+
+                  return (
+                    <Button
+                      key={item.path}
+                      variant={active ? "secondary" : "ghost"}
+                      size="sm"
+                      asChild
+                      className={cn(
+                        "w-full justify-start focus-ring",
+                        active && "bg-secondary text-secondary-foreground shadow-sm"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      {item.external ? (
+                        <a
+                          href={item.path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-3"
+                        >
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </a>
+                      ) : (
+                        <Link to={item.path} className="flex items-center space-x-3">
+                          <Icon className="w-4 h-4" />
+                          <span>{item.label}</span>
+                        </Link>
+                      )}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Creator Studio Button */}
+              {isCreator && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-muted-foreground px-3">Creator</h3>
+                  <Button
+                    size="sm"
+                    asChild
+                    className="w-full justify-start btn-secondary focus-ring"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    <Link to="/studio" className="flex items-center space-x-3">
+                      <Settings className="w-4 h-4" />
+                      <span>Studio</span>
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
     </header>
   );

@@ -12,6 +12,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar.tsx';
 import { RelaySelector } from '@/components/RelaySelector';
 import { WalletModal } from '@/components/WalletModal';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useLoggedInAccounts, type Account } from '@/hooks/useLoggedInAccounts';
 import { genUserName } from '@/lib/genUserName';
 
@@ -73,6 +74,15 @@ export function AccountSwitcher({ onAddAccountClick }: AccountSwitcherProps) {
             <span>Wallet Settings</span>
           </DropdownMenuItem>
         </WalletModal>
+        <DropdownMenuSeparator />
+        <div className='font-medium text-sm px-2 py-1.5'>Appearance</div>
+        <DropdownMenuItem
+          className='flex items-center gap-2 cursor-pointer p-2 rounded-md'
+          onSelect={(e) => e.preventDefault()}
+        >
+          <ThemeToggle />
+          <span>Theme</span>
+        </DropdownMenuItem>
         <DropdownMenuItem
           onClick={onAddAccountClick}
           className='flex items-center gap-2 cursor-pointer p-2 rounded-md'

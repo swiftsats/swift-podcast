@@ -188,6 +188,8 @@ export function EpisodeEditDialog({
 
   const onSubmit = async (data: EpisodeEditFormValues) => {
     try {
+      console.log('Starting episode update...');
+
       const episodeData: EpisodeFormData = {
         ...data,
         description: data.description || '',
@@ -200,10 +202,14 @@ export function EpisodeEditDialog({
         externalRefs: episode.externalRefs,
       };
 
-      await updateEpisode({
+      console.log('Calling updateEpisode with:', { episodeId: episode.eventId, episodeData });
+
+      const result = await updateEpisode({
         episodeId: episode.eventId,
         episodeData
       });
+
+      console.log('UpdateEpisode completed with result:', result);
 
       toast({
         title: 'Episode updated!',
@@ -214,6 +220,7 @@ export function EpisodeEditDialog({
       onOpenChange(false);
 
     } catch (error) {
+      console.error('Error in onSubmit:', error);
       toast({
         title: 'Failed to update episode',
         description: error instanceof Error ? error.message : 'An error occurred',

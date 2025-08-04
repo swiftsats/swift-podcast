@@ -232,6 +232,15 @@ export function useUpdateEpisode() {
       await queryClient.invalidateQueries({ queryKey: ['rss-feed-generator'] });
 
       return event.id;
+    },
+    onSuccess: (data) => {
+      console.log('Episode update successful:', data);
+    },
+    onError: (error) => {
+      console.error('Episode update failed:', error);
+    },
+    onSettled: (data, error) => {
+      console.log('Episode update settled:', { data, error });
     }
   });
 }
