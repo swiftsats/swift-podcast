@@ -1,8 +1,84 @@
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
-import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
+import { getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
 import { genRSSFeed } from '@/lib/rssGenerator';
 import type { PodcastEpisode } from '@/types/podcast';
+import type { NostrEvent } from '@nostrify/nostrify';
+
+/**
+ * Validates if a Nostr event is a valid podcast episode (NIP-54)
+ */
+function validatePodcastEpisode(event: NostrEvent): boolean {
+  if (event.kind !== PODCAST_KINDS.EPISODE) return false;
+
+  // Check for required title tag (NIP-54)
+  const title = event.tags.find(([name]) => name === 'title')?.[1];
+  if (!title) return false;
+
+  // Check for required audio tag (NIP-54)
+  const audio = event.tags.find(([name]) => name === 'audio')?.[1];
+  if (!audio) return false;
+
+  // Verify it's from the podcast creator
+  if (event.pubkey !== getCreatorPubkeyHex()) return false;
+
+  return true;
+}
+
+/**
+ * Converts a validated Nostr event to a PodcastEpisode object
+ */
+function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
+  const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
+
+  const title = tags.get('title')?.[0] || 'Untitled Episode';
+  const description = tags.get('description')?.[0];
+  const imageUrl = tags.get('image')?.[0];
+
+  // Extract audio URL and type from audio tag (NIP-54 format)
+  const audioTag = tags.get('audio');
+  const audioUrl = audioTag?.[0] || '';
+  const audioType = audioTag?.[1] || 'audio/mpeg';
+
+  // Extract all 't' tags for topics
+  const topicTags = event.tags
+    .filter(([name]) => name === 't')
+    .map(([, value]) => value);
+
+  return {
+    id: event.id,
+    title,
+    description,
+    content: event.content || undefined,
+    audioUrl,
+    audioType,
+    imageUrl,
+    duration: undefined, // Can be extended later if needed
+    episodeNumber: undefined, // Can be extended later if needed
+    seasonNumber: undefined, // Can be extended later if needed
+    publishDate: new Date(event.created_at * 1000),
+    explicit: false, // Can be extended later if needed
+    tags: topicTags,
+    externalRefs: [],
+    eventId: event.id,
+    authorPubkey: event.pubkey,
+    createdAt: new Date(event.created_at * 1000),
+  };
+}
+
+/**
+ * Checks if an event is an edit of another event
+ */
+function isEditEvent(event: NostrEvent): boolean {
+  return event.tags.some(([name]) => name === 'edit');
+}
+
+/**
+ * Gets the original event ID from an edit event
+ */
+function getOriginalEventId(event: NostrEvent): string | undefined {
+  return event.tags.find(([name]) => name === 'edit')?.[1];
+}
 
 /**
  * Hook to fetch podcast episodes and generate RSS feed
@@ -14,45 +90,51 @@ export function useRSSFeedGenerator() {
     queryKey: ['rss-feed-generator'],
     queryFn: async () => {
       try {
-        // Fetch podcast episodes (kind 30001 for podcast episodes)
+        // Fetch podcast episodes (kind 54 for NIP-54 podcast episodes)
         const events = await nostr.query([
           {
-            kinds: [30001], // Podcast episodes
+            kinds: [PODCAST_KINDS.EPISODE],
             authors: [getCreatorPubkeyHex()],
             limit: 100,
           }
         ]);
 
-        // Convert Nostr events to podcast episodes
-        const episodes: PodcastEpisode[] = events.map(event => {
-          const content = JSON.parse(event.content);
-          const dTag = event.tags.find(([name]) => name === 'd')?.[1] || '';
-          return {
-            id: event.id,
-            eventId: event.id,
-            authorPubkey: event.pubkey,
-            createdAt: new Date(event.created_at * 1000),
-            title: content.title || 'Untitled Episode',
-            description: content.description,
-            content: content.content,
-            audioUrl: content.audioUrl || '',
-            audioType: content.audioType || 'audio/mpeg',
-            imageUrl: content.imageUrl,
-            duration: content.duration,
-            episodeNumber: content.episodeNumber,
-            seasonNumber: content.seasonNumber,
-            publishDate: new Date(event.created_at * 1000),
-            explicit: content.explicit || false,
-            tags: content.tags || [],
-            transcript: content.transcript,
-            chapters: content.chapters,
-            guests: content.guests,
-            externalRefs: content.externalRefs,
-            dTag,
-            zapCount: 0,
-            commentCount: 0,
-          };
+        // Filter and validate events
+        const validEvents = events.filter(validatePodcastEpisode);
+
+        // Deduplicate episodes by title - keep only the latest version of each title
+        const episodesByTitle = new Map<string, NostrEvent>();
+        const originalEvents = new Set<string>(); // Track original events that have been edited
+
+        // First pass: identify edited events and their originals
+        validEvents.forEach(event => {
+          if (isEditEvent(event)) {
+            const originalId = getOriginalEventId(event);
+            if (originalId) {
+              originalEvents.add(originalId);
+            }
+          }
         });
+
+        // Second pass: select the best version for each title
+        validEvents.forEach(event => {
+          const title = event.tags.find(([name]) => name === 'title')?.[1] || '';
+          if (!title) return;
+
+          // Skip if this is an original event that has been edited
+          if (originalEvents.has(event.id)) return;
+
+          const existing = episodesByTitle.get(title);
+          if (!existing || event.created_at > existing.created_at) {
+            episodesByTitle.set(title, event);
+          }
+        });
+
+        // Convert to podcast episodes
+        const episodes = Array.from(episodesByTitle.values()).map(eventToPodcastEpisode);
+
+        // Sort by publish date (newest first for RSS)
+        episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
 
         // Generate RSS feed with the current configuration and episodes
         await genRSSFeed(episodes);

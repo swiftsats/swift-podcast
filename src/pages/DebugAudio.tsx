@@ -7,7 +7,7 @@ import type { PodcastEpisode } from '@/types/podcast';
 
 export default function DebugAudio() {
   const [testUrl, setTestUrl] = useState('https://www.soundjay.com/misc/sounds/fail-buzzer-02.wav');
-  
+
   // Create a mock episode for testing
   const createTestEpisode = (audioUrl: string): PodcastEpisode => ({
     id: 'test-episode',
@@ -21,7 +21,7 @@ export default function DebugAudio() {
     authorPubkey: 'test-pubkey',
     createdAt: new Date(),
     episodeNumber: 1,
-    dTag: 'test-episode-dtag'
+    seasonNumber: undefined
   });
 
   const [currentEpisode, setCurrentEpisode] = useState<PodcastEpisode | null>(null);

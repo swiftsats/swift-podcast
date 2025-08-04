@@ -18,7 +18,7 @@ export function usePostComment() {
   return useMutation({
     mutationFn: async ({ root, reply, content }: PostCommentParams) => {
       if (!user) throw new Error('User must be logged in to post comments');
-      
+
       // Generate optimistic comment ID
       const optimisticId = `optimistic-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       const now = Math.floor(Date.now() / 1000);
@@ -94,7 +94,12 @@ export function usePostComment() {
 
       // Add optimistic comment to cache immediately
       const queryKey = ['comments', root instanceof URL ? root.toString() : root.id];
-      queryClient.setQueryData(queryKey, (oldData: any) => {
+      queryClient.setQueryData(queryKey, (oldData: {
+        allComments: NostrEvent[];
+        topLevelComments: NostrEvent[];
+        getDescendants: (commentId: string) => NostrEvent[];
+        getDirectReplies: (commentId: string) => NostrEvent[];
+      } | undefined) => {
         if (!oldData) {
           return {
             allComments: [optimisticComment],
@@ -107,8 +112,8 @@ export function usePostComment() {
         return {
           ...oldData,
           allComments: [optimisticComment, ...oldData.allComments],
-          topLevelComments: reply 
-            ? oldData.topLevelComments 
+          topLevelComments: reply
+            ? oldData.topLevelComments
             : [optimisticComment, ...oldData.topLevelComments]
         };
       });
@@ -122,11 +127,16 @@ export function usePostComment() {
         });
 
         // Replace optimistic comment with real one
-        queryClient.setQueryData(queryKey, (oldData: any) => {
+        queryClient.setQueryData(queryKey, (oldData: {
+          allComments: NostrEvent[];
+          topLevelComments: NostrEvent[];
+          getDescendants: (commentId: string) => NostrEvent[];
+          getDirectReplies: (commentId: string) => NostrEvent[];
+        } | undefined) => {
           if (!oldData) return oldData;
 
-          const replaceOptimistic = (comments: NostrEvent[]) => 
-            comments.map(comment => 
+          const replaceOptimistic = (comments: NostrEvent[]) =>
+            comments.map(comment =>
               comment.id === optimisticId ? event : comment
             );
 
@@ -140,10 +150,15 @@ export function usePostComment() {
         return event;
       } catch (error) {
         // Remove optimistic comment on error
-        queryClient.setQueryData(queryKey, (oldData: any) => {
+        queryClient.setQueryData(queryKey, (oldData: {
+          allComments: NostrEvent[];
+          topLevelComments: NostrEvent[];
+          getDescendants: (commentId: string) => NostrEvent[];
+          getDirectReplies: (commentId: string) => NostrEvent[];
+        } | undefined) => {
           if (!oldData) return oldData;
 
-          const removeOptimistic = (comments: NostrEvent[]) => 
+          const removeOptimistic = (comments: NostrEvent[]) =>
             comments.filter(comment => comment.id !== optimisticId);
 
           return {
@@ -152,7 +167,7 @@ export function usePostComment() {
             topLevelComments: removeOptimistic(oldData.topLevelComments)
           };
         });
-        
+
         throw error;
       }
     },

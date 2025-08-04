@@ -25,7 +25,7 @@ export function NIP19Page() {
       // AI agent should implement profile view here
       return <div>Profile placeholder</div>;
 
-    case 'note':
+    case 'note': {
       // Handle note1 identifiers - could be podcast episodes (kind 54)
       const noteId = decoded.data;
       return (
@@ -33,8 +33,9 @@ export function NIP19Page() {
           eventId={noteId}
         />
       );
+    }
 
-    case 'nevent':
+    case 'nevent': {
       // Handle nevent1 identifiers - could be podcast episodes (kind 54)
       const nevent = decoded.data;
       return (
@@ -42,24 +43,24 @@ export function NIP19Page() {
           eventId={nevent.id}
         />
       );
+    }
 
-    case 'naddr':
+    case 'naddr': {
       // Handle addressable events (podcast episodes are kind 30023)
       const naddr = decoded.data;
       if (naddr.kind === 30023) {
         // This is a podcast episode
         return (
           <EpisodePage
-            identifier={naddr.identifier}
-            pubkey={naddr.pubkey}
-            kind={naddr.kind}
+            eventId={naddr.identifier} // Use identifier as eventId for compatibility
           />
         );
       }
       // For other addressable event kinds, show placeholder
       return <div>Addressable event placeholder</div>;
+    }
 
     default:
       return <NotFound />;
   }
-} 
+}

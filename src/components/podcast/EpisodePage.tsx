@@ -17,63 +17,48 @@ import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface EpisodePageProps {
-  eventId?: string; // For legacy support (note1/nevent1)
-  identifier?: string; // For naddr1 (d-tag)
-  pubkey?: string; // For naddr1
-  kind?: number; // For naddr1
+  eventId?: string; // For note1/nevent1
 }
 
-export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePageProps) {
+export function EpisodePage({ eventId }: EpisodePageProps) {
   const { nostr } = useNostr();
   const navigate = useNavigate();
   const [showPlayer, setShowPlayer] = useState(false);
 
   // Query for the episode event
   const { data: episodeEvent, isLoading } = useQuery<NostrEvent | null>({
-    queryKey: ['episode', eventId || `${kind}:${pubkey}:${identifier}`],
+    queryKey: ['episode', eventId],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
-      
-      let events: NostrEvent[];
-      
-      if (eventId) {
-        // Legacy query by event ID (for note1/nevent1)
-        events = await nostr.query([{
-          ids: [eventId],
-          limit: 1
-        }], { signal });
-      } else if (identifier && pubkey && kind) {
-        // Query by addressable event coordinates (for naddr1)
-        events = await nostr.query([{
-          kinds: [kind],
-          authors: [pubkey],
-          '#d': [identifier],
-          limit: 1
-        }], { signal });
-      } else {
+
+      if (!eventId) {
         return null;
       }
+
+      const events = await nostr.query([{
+        ids: [eventId],
+        limit: 1
+      }], { signal });
 
       return events[0] || null;
     },
     staleTime: 60000, // 1 minute
-    enabled: !!(eventId || (identifier && pubkey && kind))
+    enabled: !!eventId
   });
 
-  // Convert NostrEvent to PodcastEpisode format (addressable events with NIP-54 inspired structure)
+  // Convert NostrEvent to PodcastEpisode format (NIP-54)
   const episode: PodcastEpisode | null = episodeEvent ? (() => {
     const tags = new Map(episodeEvent.tags.map(([key, ...values]) => [key, values]));
-    
+
     const title = tags.get('title')?.[0] || 'Untitled Episode';
     const description = tags.get('description')?.[0] || '';
     const imageUrl = tags.get('image')?.[0] || '';
-    const dTag = tags.get('d')?.[0] || identifier || episodeEvent.id;
-    
+
     // Extract audio URL and type from audio tag (NIP-54 format)
     const audioTag = tags.get('audio');
     const audioUrl = audioTag?.[0] || '';
     const audioType = audioTag?.[1] || 'audio/mpeg';
-    
+
     // Extract all 't' tags for topics
     const topicTags = episodeEvent.tags
       .filter(([name]) => name === 't')
@@ -86,26 +71,25 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
       description,
       content: episodeEvent.content,
       authorPubkey: episodeEvent.pubkey,
-      dTag,
       audioUrl,
       audioType,
       imageUrl,
       publishDate: new Date(episodeEvent.created_at * 1000),
       createdAt: new Date(episodeEvent.created_at * 1000),
       episodeNumber: undefined, // Can be extended later if needed
-      season: undefined, // Can be extended later if needed
+      seasonNumber: undefined, // Can be extended later if needed
       duration: undefined, // Can be extended later if needed
       explicit: false, // Can be extended later if needed
       tags: topicTags,
       zapCount: 0,
       commentCount: 0,
-      totalSats: 0
+      repostCount: 0
     };
   })() : null;
 
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -120,7 +104,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        
+
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto space-y-6">
             <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -163,7 +147,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        
+
         <main className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -191,7 +175,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
@@ -210,7 +194,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
                     className="w-32 h-32 lg:w-48 lg:h-48 rounded-lg object-cover flex-shrink-0 shadow-lg"
                   />
                 )}
-                
+
                 <div className="flex-1 min-w-0 space-y-4">
                   <div className="flex flex-wrap items-center gap-2">
                     {episode.episodeNumber && (
@@ -218,9 +202,9 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
                         Episode {episode.episodeNumber}
                       </Badge>
                     )}
-                    {episode.season && (
+                    {episode.seasonNumber && (
                       <Badge variant="outline">
-                        Season {episode.season}
+                        Season {episode.seasonNumber}
                       </Badge>
                     )}
                     {episode.explicit && (
@@ -237,7 +221,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
                       <Calendar className="w-4 h-4" />
                       <span>{formatDistanceToNow(episode.publishDate, { addSuffix: true })}</span>
                     </div>
-                    
+
                     {episode.duration && (
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
@@ -272,8 +256,8 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
               {/* Episode Content */}
               {episode.content && (
                 <div className="prose prose-sm max-w-none">
-                  <NoteContent 
-                    event={episodeEvent!} 
+                  <NoteContent
+                    event={episodeEvent!}
                     className="text-sm"
                   />
                 </div>
@@ -290,7 +274,7 @@ export function EpisodePage({ eventId, identifier, pubkey, kind }: EpisodePagePr
                     <Headphones className="w-4 h-4" />
                     Listen Now
                   </Button>
-                  
+
                   {!episode.audioUrl && (
                     <p className="text-sm text-muted-foreground">
                       Audio not available

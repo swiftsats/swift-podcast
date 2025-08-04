@@ -11,6 +11,7 @@ import { genUserName } from '@/lib/genUserName';
 import { NoteContent } from '@/components/NoteContent';
 import { formatDistanceToNow } from 'date-fns';
 import { nip19 } from 'nostr-tools';
+import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import type { NostrEvent } from '@nostrify/nostrify';
 
 interface EmbeddedEventProps {
@@ -41,7 +42,7 @@ export function EmbeddedEvent({ eventId, className }: EmbeddedEventProps) {
         <CardContent className="p-4 text-center">
           <p className="text-sm text-muted-foreground mb-2">Unable to load embedded event</p>
           <Button variant="outline" size="sm" asChild>
-            <Link to={`/note1${nip19.noteEncode(eventId)}`}>
+            <Link to={`/${encodeEventIdAsNevent(eventId, '')}`}>
               <ExternalLink className="w-4 h-4 mr-2" />
               View Original
             </Link>
@@ -97,9 +98,9 @@ function EmbeddedEventContent({ event, className }: EmbeddedEventContentProps) {
   // Create appropriate NIP-19 identifier for linking
   const getEventLink = () => {
     if (event.kind === 1) {
-      return `/note1${nip19.noteEncode(event.id)}`;
+      return `/${encodeEventIdAsNevent(event.id, event.pubkey)}`;
     }
-    
+
     // For other events, use nevent with author context
     const nevent = nip19.neventEncode({
       id: event.id,
@@ -118,7 +119,7 @@ function EmbeddedEventContent({ event, className }: EmbeddedEventContentProps) {
               {displayName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center space-x-2 mb-2">
               {getEventTypeIcon()}
@@ -130,16 +131,16 @@ function EmbeddedEventContent({ event, className }: EmbeddedEventContentProps) {
                 {formatDistanceToNow(postDate, { addSuffix: true })}
               </time>
             </div>
-            
+
             {event.content && (
               <div className="mb-3">
-                <NoteContent 
-                  event={event} 
-                  className="text-sm text-muted-foreground line-clamp-3" 
+                <NoteContent
+                  event={event}
+                  className="text-sm text-muted-foreground line-clamp-3"
                 />
               </div>
             )}
-            
+
             <Button variant="ghost" size="sm" asChild className="text-xs">
               <Link to={getEventLink()}>
                 <ExternalLink className="w-3 h-3 mr-1" />

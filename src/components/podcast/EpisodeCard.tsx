@@ -7,7 +7,7 @@ import { NoteContent } from '@/components/NoteContent';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
+import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -19,16 +19,16 @@ interface EpisodeCardProps {
   className?: string;
 }
 
-export function EpisodeCard({ 
-  episode, 
-  showPlayer: _showPlayer = false, 
+export function EpisodeCard({
+  episode,
+  showPlayer: _showPlayer = false,
   showComments = false,
   onPlayEpisode,
-  className 
+  className
 }: EpisodeCardProps) {
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -50,8 +50,8 @@ export function EpisodeCard({
     sig: ''
   };
 
-  // Generate note1 for episode link (NIP-54 uses regular events)
-  const episodeNote = nip19.noteEncode(episode.eventId);
+  // Generate nevent for episode link with relay hints (NIP-54 uses regular events)
+  const episodeNevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
 
   return (
     <Card className={className}>
@@ -64,7 +64,7 @@ export function EpisodeCard({
               className="w-20 h-20 rounded-lg object-cover flex-shrink-0"
             />
           )}
-          
+
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center space-x-2">
@@ -77,7 +77,7 @@ export function EpisodeCard({
                   <Badge variant="destructive">Explicit</Badge>
                 )}
               </div>
-              
+
               <div className="flex items-center space-x-1">
                 {episode.zapCount && episode.zapCount > 0 && (
                   <div className="flex items-center space-x-1 text-sm text-muted-foreground">
@@ -93,22 +93,22 @@ export function EpisodeCard({
                 )}
               </div>
             </div>
-            
-            <Link 
-              to={`/${episodeNote}`}
+
+            <Link
+              to={`/${episodeNevent}`}
               className="block group"
             >
               <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors cursor-pointer">
                 {episode.title}
               </h3>
             </Link>
-            
+
             <div className="flex items-center space-x-4 text-sm text-muted-foreground mb-3">
               <div className="flex items-center space-x-1">
                 <Calendar className="w-3 h-3" />
                 <span>{formatDistanceToNow(episode.publishDate, { addSuffix: true })}</span>
               </div>
-              
+
               {episode.duration && (
                 <div className="flex items-center space-x-1">
                   <Clock className="w-3 h-3" />
@@ -116,7 +116,7 @@ export function EpisodeCard({
                 </div>
               )}
             </div>
-            
+
             {episode.tags.length > 0 && (
               <div className="flex flex-wrap gap-1 mb-3">
                 {episode.tags.slice(0, 5).map((tag) => (
@@ -146,8 +146,8 @@ export function EpisodeCard({
 
         {episode.content && (
           <div className="mb-4 prose prose-sm max-w-none">
-            <NoteContent 
-              event={episodeEvent} 
+            <NoteContent
+              event={episodeEvent}
               className="text-sm"
             />
           </div>
@@ -161,7 +161,7 @@ export function EpisodeCard({
             >
               Play Episode
             </Button>
-            
+
             <ZapButton
               target={episodeEvent}
               className="text-xs"

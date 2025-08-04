@@ -51,15 +51,15 @@ interface EpisodeEditDialogProps {
   onSuccess: () => void;
 }
 
-export function EpisodeEditDialog({ 
-  episode, 
-  open, 
-  onOpenChange, 
-  onSuccess 
+export function EpisodeEditDialog({
+  episode,
+  open,
+  onOpenChange,
+  onSuccess
 }: EpisodeEditDialogProps) {
   const { toast } = useToast();
   const { mutateAsync: updateEpisode, isPending } = useUpdateEpisode();
-  
+
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [currentTag, setCurrentTag] = useState('');
@@ -114,7 +114,7 @@ export function EpisodeEditDialog({
         });
         return;
       }
-      
+
       // Validate file size (100MB limit)
       if (file.size > 100 * 1024 * 1024) {
         toast({
@@ -124,10 +124,10 @@ export function EpisodeEditDialog({
         });
         return;
       }
-      
+
       setAudioFile(file);
       setValue('audioUrl', '');
-      
+
       toast({
         title: 'Audio file selected',
         description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
@@ -147,7 +147,7 @@ export function EpisodeEditDialog({
         });
         return;
       }
-      
+
       // Validate file size (10MB limit)
       if (file.size > 10 * 1024 * 1024) {
         toast({
@@ -157,10 +157,10 @@ export function EpisodeEditDialog({
         });
         return;
       }
-      
+
       setImageFile(file);
       setValue('imageUrl', '');
-      
+
       toast({
         title: 'Image file selected',
         description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
@@ -202,10 +202,9 @@ export function EpisodeEditDialog({
 
       await updateEpisode({
         episodeId: episode.eventId,
-        episodeData,
-        dTag: episode.dTag
+        episodeData
       });
-      
+
       toast({
         title: 'Episode updated!',
         description: 'Your episode has been updated successfully.',
@@ -213,7 +212,7 @@ export function EpisodeEditDialog({
 
       onSuccess();
       onOpenChange(false);
-      
+
     } catch (error) {
       toast({
         title: 'Failed to update episode',
@@ -229,7 +228,7 @@ export function EpisodeEditDialog({
         <DialogHeader>
           <DialogTitle>Edit Episode</DialogTitle>
         </DialogHeader>
-        
+
         <ScrollArea className="max-h-[calc(90vh-8rem)] pr-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -256,7 +255,7 @@ export function EpisodeEditDialog({
                   <FormItem>
                     <FormLabel>Description</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea
                         placeholder="Brief description of the episode..."
                         rows={3}
                         {...field}
@@ -275,7 +274,7 @@ export function EpisodeEditDialog({
                   <FormItem>
                     <FormLabel>Show Notes</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea
                         placeholder="Detailed show notes, timestamps, links..."
                         rows={5}
                         {...field}
@@ -289,7 +288,7 @@ export function EpisodeEditDialog({
               {/* Audio Upload/URL */}
               <div className="space-y-4">
                 <Label>Audio File</Label>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-muted-foreground">Replace Audio File</Label>
@@ -328,7 +327,7 @@ export function EpisodeEditDialog({
                             Or Update Audio URL
                           </FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               placeholder="https://example.com/audio.mp3"
                               disabled={!!audioFile}
                               {...field}
@@ -340,7 +339,7 @@ export function EpisodeEditDialog({
                     />
                   </div>
                 </div>
-                
+
                 {/* Current audio info */}
                 {!audioFile && episode.audioUrl && (
                   <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
@@ -352,7 +351,7 @@ export function EpisodeEditDialog({
               {/* Image Upload/URL */}
               <div className="space-y-4">
                 <Label>Episode Artwork</Label>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label className="text-sm text-muted-foreground">Replace Image</Label>
@@ -391,7 +390,7 @@ export function EpisodeEditDialog({
                             Or Update Image URL
                           </FormLabel>
                           <FormControl>
-                            <Input 
+                            <Input
                               placeholder="https://example.com/artwork.jpg"
                               disabled={!!imageFile}
                               {...field}
@@ -403,13 +402,13 @@ export function EpisodeEditDialog({
                     />
                   </div>
                 </div>
-                
+
                 {/* Current image preview */}
                 {!imageFile && episode.imageUrl && (
                   <div className="flex items-center space-x-2">
-                    <img 
-                      src={episode.imageUrl} 
-                      alt="Current artwork" 
+                    <img
+                      src={episode.imageUrl}
+                      alt="Current artwork"
                       className="w-16 h-16 rounded object-cover"
                     />
                     <div className="text-xs text-muted-foreground">
@@ -428,8 +427,8 @@ export function EpisodeEditDialog({
                     <FormItem>
                       <FormLabel>Episode Number</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           placeholder="1"
                           {...field}
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
@@ -447,8 +446,8 @@ export function EpisodeEditDialog({
                     <FormItem>
                       <FormLabel>Season Number</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           placeholder="1"
                           {...field}
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
@@ -466,8 +465,8 @@ export function EpisodeEditDialog({
                     <FormItem>
                       <FormLabel>Duration (seconds)</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="number" 
+                        <Input
+                          type="number"
                           placeholder="3600"
                           {...field}
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
@@ -494,7 +493,7 @@ export function EpisodeEditDialog({
                     Add
                   </Button>
                 </div>
-                
+
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {tags.map((tag) => (
@@ -537,9 +536,9 @@ export function EpisodeEditDialog({
 
               {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-6 border-t">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isPending}
                 >

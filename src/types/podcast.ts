@@ -1,7 +1,7 @@
 import type { NostrEvent } from '@nostrify/nostrify';
 
 /**
- * Podcast episode metadata based on NIP-23 long-form content (established best practice)
+ * Podcast episode metadata based on NIP-54
  */
 export interface PodcastEpisode {
   id: string;
@@ -21,12 +21,11 @@ export interface PodcastEpisode {
   chapters?: PodcastChapter[];
   guests?: PodcastGuest[];
   externalRefs?: ExternalReference[];
-  
+
   // Nostr-specific fields
   eventId: string;
   authorPubkey: string;
   createdAt: Date;
-  dTag: string; // Addressable event identifier (d tag)
   zapCount?: number;
   commentCount?: number;
   repostCount?: number;

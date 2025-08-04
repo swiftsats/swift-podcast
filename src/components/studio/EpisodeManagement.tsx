@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
-import { 
-  Edit, 
-  Trash2, 
-  Play, 
-  Pause, 
-  MoreHorizontal, 
+import {
+  Edit,
+  Trash2,
+  Play,
+  Pause,
+  MoreHorizontal,
   Eye,
   ExternalLink,
   Calendar,
@@ -17,7 +17,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { nip19 } from 'nostr-tools';
+import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -58,7 +58,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
   const { toast } = useToast();
   const podcastConfig = usePodcastConfig();
   const { mutateAsync: deleteEpisode, isPending: isDeleting } = useDeleteEpisode();
-  
+
   const [searchOptions, setSearchOptions] = useState<EpisodeSearchOptions>({
     limit: 50,
     sortBy: 'date',
@@ -67,7 +67,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
   const [episodeToDelete, setEpisodeToDelete] = useState<PodcastEpisode | null>(null);
   const [episodeToEdit, setEpisodeToEdit] = useState<PodcastEpisode | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  
+
   const { data: episodes, isLoading, error } = usePodcastEpisodes(searchOptions);
 
   const handleSearch = (query: string) => {
@@ -91,16 +91,16 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
   const handleDeleteEpisode = async (episode: PodcastEpisode) => {
     try {
       await deleteEpisode(episode.eventId);
-      
+
       // Regenerate RSS feed after deletion
       const updatedEpisodes = episodes?.filter(e => e.id !== episode.id) || [];
       await genRSSFeed(updatedEpisodes, podcastConfig);
-      
+
       toast({
         title: 'Episode deleted',
         description: `"${episode.title}" has been deleted and RSS feed updated.`,
       });
-      
+
       setEpisodeToDelete(null);
     } catch (error) {
       toast({
@@ -121,7 +121,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
 
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
-    
+
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -170,7 +170,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
               </Link>
             </Button>
           </div>
-          
+
           {/* Search and Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="flex-1">
@@ -228,8 +228,8 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                 {searchOptions.query ? 'No episodes found' : 'No episodes yet'}
               </h3>
               <p className="text-muted-foreground mb-6">
-                {searchOptions.query 
-                  ? 'Try adjusting your search terms' 
+                {searchOptions.query
+                  ? 'Try adjusting your search terms'
                   : 'Start by publishing your first episode'
                 }
               </p>
@@ -287,7 +287,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                               )}
                             </div>
                           </div>
-                          
+
                           {/* Actions Dropdown */}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -313,11 +313,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                                 Edit Episode
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link to={`/${nip19.naddrEncode({
-                                  identifier: episode.dTag,
-                                  pubkey: episode.authorPubkey,
-                                  kind: 30023
-                                })}`}>
+                                <Link to={`/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   View Public Page
                                 </Link>
@@ -374,7 +370,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                               </div>
                             )}
                           </div>
-                          
+
                           {/* Stats */}
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                             {episode.zapCount && episode.zapCount > 0 && (
@@ -415,15 +411,15 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog 
-        open={!!episodeToDelete} 
+      <AlertDialog
+        open={!!episodeToDelete}
         onOpenChange={() => setEpisodeToDelete(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Episode</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{episodeToDelete?.title}"? 
+              Are you sure you want to delete "{episodeToDelete?.title}"?
               This action cannot be undone and will also update your RSS feed.
             </AlertDialogDescription>
           </AlertDialogHeader>
