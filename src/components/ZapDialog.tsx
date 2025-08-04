@@ -38,14 +38,15 @@ interface ZapDialogProps {
   target: Event;
   children?: React.ReactNode;
   className?: string;
+  onZapSuccess?: (amount: number) => void;
 }
 
 const presetAmounts = [
-  { amount: 1, icon: Sparkle },
-  { amount: 50, icon: Sparkles },
-  { amount: 100, icon: Zap },
-  { amount: 250, icon: Star },
-  { amount: 1000, icon: Rocket },
+  { amount: 100, icon: Sparkle },
+  { amount: 500, icon: Sparkles },
+  { amount: 1000, icon: Zap },
+  { amount: 2100, icon: Star },
+  { amount: 10000, icon: Rocket },
 ];
 
 interface ZapContentProps {
@@ -235,14 +236,23 @@ const ZapContent = forwardRef<HTMLDivElement, ZapContentProps>(({
 ZapContent.displayName = 'ZapContent';
 
 
-export function ZapDialog({ target, children, className }: ZapDialogProps) {
+export function ZapDialog({ target, children, className, onZapSuccess }: ZapDialogProps) {
   const [open, setOpen] = useState(false);
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target.pubkey);
   const { toast } = useToast();
   const { webln, activeNWC, hasWebLN, detectWebLN } = useWallet();
-  const { zap, isZapping, invoice, setInvoice } = useZaps(target, webln, activeNWC, () => setOpen(false));
-  const [amount, setAmount] = useState<number | string>(100);
+  
+  // Create a wrapper for zap success that calls both the dialog close and the external callback
+  const handleZapSuccess = (amount?: number) => {
+    setOpen(false);
+    if (onZapSuccess && amount) {
+      onZapSuccess(amount);
+    }
+  };
+  
+  const { zap, isZapping, invoice, setInvoice } = useZaps(target, webln, activeNWC, handleZapSuccess);
+  const [amount, setAmount] = useState<number | string>(1000);
   const [comment, setComment] = useState<string>('');
   const [copied, setCopied] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
@@ -251,7 +261,7 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
 
   useEffect(() => {
     if (target) {
-      setComment('Zapped with MKStack!');
+      setComment('Zapped!🎙️');
     }
   }, [target]);
 
@@ -320,13 +330,13 @@ export function ZapDialog({ target, children, className }: ZapDialogProps) {
 
   useEffect(() => {
     if (open) {
-      setAmount(100);
+      setAmount(1000);
       setInvoice(null);
       setCopied(false);
       setQrCodeUrl('');
     } else {
       // Clean up state when dialog closes
-      setAmount(100);
+      setAmount(1000);
       setInvoice(null);
       setCopied(false);
       setQrCodeUrl('');

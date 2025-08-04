@@ -11,14 +11,14 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
       const filter: NostrFilter = { kinds: [1111] };
 
       if (root instanceof URL) {
-        filter['#I'] = [root.toString()];
+        filter['#i'] = [root.toString()];
       } else if (NKinds.addressable(root.kind)) {
         const d = root.tags.find(([name]) => name === 'd')?.[1] ?? '';
-        filter['#A'] = [`${root.kind}:${root.pubkey}:${d}`];
+        filter['#a'] = [`${root.kind}:${root.pubkey}:${d}`];
       } else if (NKinds.replaceable(root.kind)) {
-        filter['#A'] = [`${root.kind}:${root.pubkey}:`];
+        filter['#a'] = [`${root.kind}:${root.pubkey}:`];
       } else {
-        filter['#E'] = [root.id];
+        filter['#e'] = [root.id];
       }
 
       if (typeof limit === 'number') {
@@ -94,5 +94,6 @@ export function useComments(root: NostrEvent | URL, limit?: number) {
       };
     },
     enabled: !!root,
+    staleTime: 10000, // 10 seconds - refresh more frequently for new comments
   });
 }

@@ -1,5 +1,6 @@
 import { nip19 } from 'nostr-tools';
 import { useParams } from 'react-router-dom';
+import { EpisodePage } from '@/components/podcast/EpisodePage';
 import NotFound from './NotFound';
 
 export function NIP19Page() {
@@ -25,15 +26,37 @@ export function NIP19Page() {
       return <div>Profile placeholder</div>;
 
     case 'note':
-      // AI agent should implement note view here
-      return <div>Note placeholder</div>;
+      // Handle note1 identifiers - could be podcast episodes (kind 54)
+      const noteId = decoded.data;
+      return (
+        <EpisodePage
+          eventId={noteId}
+        />
+      );
 
     case 'nevent':
-      // AI agent should implement event view here
-      return <div>Event placeholder</div>;
+      // Handle nevent1 identifiers - could be podcast episodes (kind 54)
+      const nevent = decoded.data;
+      return (
+        <EpisodePage
+          eventId={nevent.id}
+        />
+      );
 
     case 'naddr':
-      // AI agent should implement addressable event view here
+      // Handle addressable events (podcast episodes are kind 30023)
+      const naddr = decoded.data;
+      if (naddr.kind === 30023) {
+        // This is a podcast episode
+        return (
+          <EpisodePage
+            identifier={naddr.identifier}
+            pubkey={naddr.pubkey}
+            kind={naddr.kind}
+          />
+        );
+      }
+      // For other addressable event kinds, show placeholder
       return <div>Addressable event placeholder</div>;
 
     default:

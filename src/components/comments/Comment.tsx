@@ -27,6 +27,9 @@ export function Comment({ root, comment, depth = 0, maxDepth = 3, limit }: Comme
   const [showReplyForm, setShowReplyForm] = useState(false);
   const [showReplies, setShowReplies] = useState(depth < 2); // Auto-expand first 2 levels
   
+  // Check if this is an optimistic comment
+  const isOptimistic = comment.id.startsWith('optimistic-');
+  
   const author = useAuthor(comment.pubkey);
   const { data: commentsData } = useComments(root, limit);
   
@@ -40,7 +43,7 @@ export function Comment({ root, comment, depth = 0, maxDepth = 3, limit }: Comme
 
   return (
     <div className={`space-y-3 ${depth > 0 ? 'ml-6 border-l-2 border-muted pl-4' : ''}`}>
-      <Card className="bg-card/50">
+      <Card className={`bg-card/50 ${isOptimistic ? 'opacity-70 border-dashed border-primary/30' : ''}`}>
         <CardContent className="p-4">
           <div className="space-y-3">
             {/* Comment Header */}
@@ -61,7 +64,9 @@ export function Comment({ root, comment, depth = 0, maxDepth = 3, limit }: Comme
                   >
                     {displayName}
                   </Link>
-                  <p className="text-xs text-muted-foreground">{timeAgo}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {isOptimistic ? 'Posting...' : timeAgo}
+                  </p>
                 </div>
               </div>
             </div>

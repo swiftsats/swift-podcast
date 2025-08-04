@@ -24,7 +24,4 @@ dist-ssr
 # Vercel
 .vercel
 
-# Secrets
-.env
-.env.*
-!.env.example
+# Configuration is now in src/lib/podcastConfig.ts

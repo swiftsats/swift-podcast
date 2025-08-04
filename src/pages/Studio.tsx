@@ -1,0 +1,1183 @@
+import { useSeoMeta } from '@unhead/react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Settings,
+  Save,
+  X,
+  Upload,
+  Mic,
+  Globe,
+  Users,
+  Zap,
+  Loader2,
+  User,
+  DollarSign
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Switch } from '@/components/ui/switch';
+import { Navigation } from '@/components/Navigation';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useNostrPublish } from '@/hooks/useNostrPublish';
+import { useToast } from '@/hooks/useToast';
+import { usePodcastMetadata } from '@/hooks/usePodcastMetadata';
+import { usePodcastConfig } from '@/hooks/usePodcastConfig';
+import { useRSSFeedGenerator } from '@/hooks/useRSSFeedGenerator';
+import { useAuthor } from '@/hooks/useAuthor';
+import { useUploadFile } from '@/hooks/useUploadFile';
+import { isPodcastCreator, PODCAST_CONFIG, getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
+import { genRSSFeed } from '@/lib/rssGenerator';
+import { EpisodeManagement } from '@/components/studio/EpisodeManagement';
+
+interface ProfileFormData {
+  name: string;
+  displayName: string;
+  about: string;
+  picture: string;
+  website: string;
+  lud16: string;
+  nip05: string;
+}
+
+interface PodcastFormData {
+  title: string;
+  description: string;
+  author: string;
+  email: string;
+  image: string;
+  language: string;
+  categories: string[];
+  explicit: boolean;
+  website: string;
+  copyright: string;
+  funding: string[];
+  locked: boolean;
+  value: {
+    amount: number;
+    currency: string;
+  };
+  type: 'episodic' | 'serial';
+  complete: boolean;
+  // New Podcasting 2.0 fields
+  guid: string;
+  medium: 'podcast' | 'music' | 'video' | 'film' | 'audiobook' | 'newsletter' | 'blog';
+  publisher: string;
+  location?: {
+    name: string;
+    geo?: string;
+    osm?: string;
+  };
+  person: Array<{
+    name: string;
+    role: string;
+    group?: string;
+    img?: string;
+    href?: string;
+  }>;
+  license: {
+    identifier: string;
+    url?: string;
+  };
+}
+
+interface ExtendedPodcastMetadata {
+  title: string;
+  description: string;
+  author: string;
+  email: string;
+  image: string;
+  language: string;
+  categories: string[];
+  explicit: boolean;
+  website: string;
+  copyright: string;
+  funding?: string[];
+  locked?: boolean;
+  value?: {
+    amount: number;
+    currency: string;
+  };
+  type?: 'episodic' | 'serial';
+  complete?: boolean;
+  // Podcasting 2.0 fields
+  guid?: string;
+  medium?: 'podcast' | 'music' | 'video' | 'film' | 'audiobook' | 'newsletter' | 'blog';
+  publisher?: string;
+  location?: {
+    name: string;
+    geo?: string;
+    osm?: string;
+  };
+  person?: Array<{
+    name: string;
+    role: string;
+    group?: string;
+    img?: string;
+    href?: string;
+  }>;
+  license?: {
+    identifier: string;
+    url?: string;
+  };
+}
+
+const Studio = () => {
+  const navigate = useNavigate();
+  const { user } = useCurrentUser();
+  const { mutate: createEvent } = useNostrPublish();
+  const { toast } = useToast();
+  const { data: podcastMetadata, isLoading: isLoadingMetadata } = usePodcastMetadata();
+  const podcastConfig = usePodcastConfig();
+  const { refetch: refetchRSSFeed } = useRSSFeedGenerator();
+  const { data: creator } = useAuthor(getCreatorPubkeyHex());
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const isCreator = user && isPodcastCreator(user.pubkey);
+
+  const [activeTab, setActiveTab] = useState('settings');
+  const [isSaving, setIsSaving] = useState(false);
+  const [editingSection, setEditingSection] = useState<'profile' | 'podcast' | null>(null);
+
+  const [profileData, setProfileData] = useState<ProfileFormData>({
+    name: '',
+    displayName: '',
+    about: '',
+    picture: '',
+    website: '',
+    lud16: '',
+    nip05: '',
+  });
+
+  const [formData, setFormData] = useState<PodcastFormData>({
+    title: PODCAST_CONFIG.podcast.title,
+    description: PODCAST_CONFIG.podcast.description,
+    author: PODCAST_CONFIG.podcast.author,
+    email: PODCAST_CONFIG.podcast.email,
+    image: PODCAST_CONFIG.podcast.image,
+    language: PODCAST_CONFIG.podcast.language,
+    categories: PODCAST_CONFIG.podcast.categories,
+    explicit: PODCAST_CONFIG.podcast.explicit,
+    website: PODCAST_CONFIG.podcast.website,
+    copyright: PODCAST_CONFIG.podcast.copyright,
+    funding: [],
+    locked: false,
+    value: {
+      amount: 0,
+      currency: 'USD'
+    },
+    type: 'episodic',
+    complete: false,
+    // New Podcasting 2.0 defaults
+    guid: PODCAST_CONFIG.podcast.guid || PODCAST_CONFIG.creatorNpub,
+    medium: PODCAST_CONFIG.podcast.medium || 'podcast',
+    publisher: PODCAST_CONFIG.podcast.publisher || PODCAST_CONFIG.podcast.author,
+    person: PODCAST_CONFIG.podcast.person || [
+      {
+        name: PODCAST_CONFIG.podcast.author,
+        role: 'host',
+        group: 'cast'
+      }
+    ],
+    license: PODCAST_CONFIG.podcast.license || {
+      identifier: 'CC BY 4.0',
+      url: 'https://creativecommons.org/licenses/by/4.0/'
+    }
+  });
+
+  // Update form data when metadata loads
+  useEffect(() => {
+    if (podcastMetadata && !isLoadingMetadata) {
+      setFormData({
+        title: podcastMetadata.title,
+        description: podcastMetadata.description,
+        author: podcastMetadata.author,
+        email: podcastMetadata.email,
+        image: podcastMetadata.image,
+        language: podcastMetadata.language,
+        categories: podcastMetadata.categories,
+        explicit: podcastMetadata.explicit,
+        website: podcastMetadata.website,
+        copyright: podcastMetadata.copyright,
+        funding: podcastMetadata.funding || [],
+        locked: podcastMetadata.locked || false,
+        value: podcastMetadata.value || { amount: 0, currency: 'USD' },
+        type: podcastMetadata.type || 'episodic',
+        complete: podcastMetadata.complete || false,
+        // Podcasting 2.0 fields
+        guid: (podcastMetadata as ExtendedPodcastMetadata).guid || PODCAST_CONFIG.creatorNpub,
+        medium: (podcastMetadata as ExtendedPodcastMetadata).medium || 'podcast',
+        publisher: (podcastMetadata as ExtendedPodcastMetadata).publisher || podcastMetadata.author,
+        location: (podcastMetadata as ExtendedPodcastMetadata).location,
+        person: (podcastMetadata as ExtendedPodcastMetadata).person || [
+          {
+            name: podcastMetadata.author,
+            role: 'host',
+            group: 'cast'
+          }
+        ],
+        license: (podcastMetadata as ExtendedPodcastMetadata).license || {
+          identifier: 'CC BY 4.0',
+          url: 'https://creativecommons.org/licenses/by/4.0/'
+        }
+      });
+    }
+  }, [podcastMetadata, isLoadingMetadata]);
+
+  // Update profile data when creator data loads
+  useEffect(() => {
+    if (creator?.metadata) {
+      setProfileData({
+        name: creator.metadata.name || '',
+        displayName: creator.metadata.display_name || '',
+        about: creator.metadata.about || '',
+        picture: creator.metadata.picture || '',
+        website: creator.metadata.website || '',
+        lud16: creator.metadata.lud16 || '',
+        nip05: creator.metadata.nip05 || '',
+      });
+    }
+  }, [creator]);
+
+  useSeoMeta({
+    title: 'Studio - PODSTR',
+    description: 'Manage your podcast settings and publish new episodes',
+  });
+
+  const handleProfileInputChange = (field: keyof ProfileFormData, value: string) => {
+    setProfileData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleInputChange = (field: keyof PodcastFormData, value: PodcastFormData[keyof PodcastFormData]) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCategoryAdd = (category: string) => {
+    if (category && !formData.categories.includes(category)) {
+      handleInputChange('categories', [...formData.categories, category]);
+    }
+  };
+
+  const handleCategoryRemove = (category: string) => {
+    handleInputChange('categories', formData.categories.filter(c => c !== category));
+  };
+
+  const handleFundingAdd = (funding: string) => {
+    if (funding && !formData.funding.includes(funding)) {
+      handleInputChange('funding', [...formData.funding, funding]);
+    }
+  };
+
+  const handleFundingRemove = (funding: string) => {
+    handleInputChange('funding', formData.funding.filter(f => f !== funding));
+  };
+
+  // Handle file uploads for profile picture
+  const uploadProfilePicture = async (file: File) => {
+    try {
+      const [[_, url]] = await uploadFile(file);
+      handleProfileInputChange('picture', url);
+      toast({
+        title: 'Success',
+        description: 'Profile picture uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Failed to upload profile picture:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload profile picture. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  // Handle file uploads for podcast image
+  const uploadPodcastImage = async (file: File) => {
+    try {
+      const [[_, url]] = await uploadFile(file);
+      handleInputChange('image', url);
+      toast({
+        title: 'Success',
+        description: 'Podcast cover image uploaded successfully',
+      });
+    } catch (error) {
+      console.error('Failed to upload podcast image:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload podcast cover image. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      // Save profile metadata if profile section is being edited
+      if (editingSection === 'profile') {
+        const profileEvent = {
+          kind: 0, // Profile metadata
+          content: JSON.stringify({
+            name: profileData.name,
+            display_name: profileData.displayName,
+            about: profileData.about,
+            picture: profileData.picture,
+            website: profileData.website,
+            lud16: profileData.lud16,
+            nip05: profileData.nip05,
+          }),
+          tags: [],
+          created_at: Math.floor(Date.now() / 1000)
+        };
+
+        await createEvent(profileEvent);
+      }
+
+      // Save podcast metadata if podcast section is being edited
+      if (editingSection === 'podcast') {
+        const podcastMetadataEvent = {
+          kind: PODCAST_KINDS.PODCAST_METADATA, // Addressable podcast metadata event
+          content: JSON.stringify({
+            title: formData.title,
+            description: formData.description,
+            author: formData.author,
+            email: formData.email,
+            image: formData.image,
+            language: formData.language,
+            categories: formData.categories,
+            explicit: formData.explicit,
+            website: formData.website,
+            copyright: formData.copyright,
+            funding: formData.funding,
+            locked: formData.locked,
+            value: formData.value,
+            type: formData.type,
+            complete: formData.complete,
+            // Podcasting 2.0 fields
+            guid: formData.guid,
+            medium: formData.medium,
+            publisher: formData.publisher,
+            location: formData.location,
+            person: formData.person,
+            license: formData.license,
+            updated_at: Math.floor(Date.now() / 1000)
+          }),
+          tags: [
+            ['d', 'podcast-metadata'], // Identifier for this type of event
+            ['title', formData.title]
+          ],
+          created_at: Math.floor(Date.now() / 1000)
+        };
+
+        await createEvent(podcastMetadataEvent);
+
+        // Update RSS feed with the new configuration
+        await genRSSFeed(undefined, podcastConfig);
+
+        // Refetch RSS feed generator to ensure it uses the latest configuration
+        await refetchRSSFeed();
+      }
+
+      toast({
+        title: "Settings saved!",
+        description: `${editingSection === 'profile' ? 'Profile' : 'Podcast'} settings have been updated.`,
+      });
+
+      setEditingSection(null);
+    } catch (error) {
+      console.error('Failed to save settings:', error);
+      toast({
+        title: "Failed to save settings",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    if (editingSection === 'profile' && creator?.metadata) {
+      setProfileData({
+        name: creator.metadata.name || '',
+        displayName: creator.metadata.display_name || '',
+        about: creator.metadata.about || '',
+        picture: creator.metadata.picture || '',
+        website: creator.metadata.website || '',
+        lud16: creator.metadata.lud16 || '',
+        nip05: creator.metadata.nip05 || '',
+      });
+    }
+
+    if (editingSection === 'podcast' && podcastMetadata) {
+      setFormData({
+        title: podcastMetadata.title,
+        description: podcastMetadata.description,
+        author: podcastMetadata.author,
+        email: podcastMetadata.email,
+        image: podcastMetadata.image,
+        language: podcastMetadata.language,
+        categories: podcastMetadata.categories,
+        explicit: podcastMetadata.explicit,
+        website: podcastMetadata.website,
+        copyright: podcastMetadata.copyright,
+        funding: podcastMetadata.funding || [],
+        locked: podcastMetadata.locked || false,
+        value: podcastMetadata.value || { amount: 0, currency: 'USD' },
+        type: podcastMetadata.type || 'episodic',
+        complete: podcastMetadata.complete || false,
+        // Podcasting 2.0 fields
+        guid: (podcastMetadata as ExtendedPodcastMetadata).guid || PODCAST_CONFIG.creatorNpub,
+        medium: (podcastMetadata as ExtendedPodcastMetadata).medium || 'podcast',
+        publisher: (podcastMetadata as ExtendedPodcastMetadata).publisher || podcastMetadata.author,
+        location: (podcastMetadata as ExtendedPodcastMetadata).location,
+        person: (podcastMetadata as ExtendedPodcastMetadata).person || [
+          {
+            name: podcastMetadata.author,
+            role: 'host',
+            group: 'cast'
+          }
+        ],
+        license: (podcastMetadata as ExtendedPodcastMetadata).license || {
+          identifier: 'CC BY 4.0',
+          url: 'https://creativecommons.org/licenses/by/4.0/'
+        }
+      });
+    }
+
+    setEditingSection(null);
+  };
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-6 text-center">
+              <h2 className="text-xl font-semibold mb-4">Login Required</h2>
+              <p className="text-muted-foreground mb-4">
+                You need to be logged in to access the Studio.
+              </p>
+              <Button onClick={() => navigate('/')}>
+                Go to Homepage
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  if (!isCreator) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-md mx-auto">
+            <CardContent className="p-6 text-center">
+              <h2 className="text-xl font-semibold mb-4">Access Denied</h2>
+              <p className="text-muted-foreground mb-4">
+                Only the podcast creator can access the Studio.
+              </p>
+              <Button onClick={() => navigate('/')}>
+                Go to Homepage
+              </Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-3xl font-bold">Studio</h1>
+              <p className="text-muted-foreground">
+                Manage your profile and podcast settings
+              </p>
+            </div>
+
+            {editingSection ? (
+              <div className="flex items-center space-x-2">
+                <Button variant="outline" onClick={handleCancel} disabled={isSaving}>
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+                <Button onClick={handleSave} disabled={isSaving || isUploading}>
+                  {(isSaving || isUploading) ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4 mr-2" />
+                  )}
+                  Save {editingSection === 'profile' ? 'Profile' : 'Podcast'}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingSection('profile')}
+                  disabled={editingSection === 'podcast'}
+                >
+                  <User className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+                <Button
+                  onClick={() => setEditingSection('podcast')}
+                  disabled={editingSection === 'profile'}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Edit Podcast
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="settings" className="flex items-center space-x-2">
+                <Settings className="w-4 h-4" />
+                <span>Settings</span>
+              </TabsTrigger>
+              <TabsTrigger value="episodes" className="flex items-center space-x-2">
+                <Mic className="w-4 h-4" />
+                <span>Episodes</span>
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="flex items-center space-x-2">
+                <Zap className="w-4 h-4" />
+                <span>Analytics</span>
+              </TabsTrigger>
+            </TabsList>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings" className="space-y-6">
+              {/* Profile Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <User className="w-5 h-5" />
+                    <span>Profile Settings</span>
+                    {editingSection === 'profile' && (
+                      <Badge variant="secondary">Editing</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="profile-name">Name</Label>
+                        <Input
+                          id="profile-name"
+                          value={profileData.name}
+                          onChange={(e) => handleProfileInputChange('name', e.target.value)}
+                          disabled={editingSection !== 'profile'}
+                          placeholder="Your full name"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="profile-display-name">Display Name</Label>
+                        <Input
+                          id="profile-display-name"
+                          value={profileData.displayName}
+                          onChange={(e) => handleProfileInputChange('displayName', e.target.value)}
+                          disabled={editingSection !== 'profile'}
+                          placeholder="How you want to be known"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="profile-website">Website</Label>
+                        <Input
+                          id="profile-website"
+                          value={profileData.website}
+                          onChange={(e) => handleProfileInputChange('website', e.target.value)}
+                          disabled={editingSection !== 'profile'}
+                          placeholder="https://yourwebsite.com"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="profile-picture">Profile Picture</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="profile-picture"
+                            value={profileData.picture}
+                            onChange={(e) => handleProfileInputChange('picture', e.target.value)}
+                            disabled={editingSection !== 'profile'}
+                            placeholder="https://example.com/avatar.jpg"
+                          />
+                          <div className="flex items-center space-x-2">
+                            <input 
+                              type="file" 
+                              id="profile-picture-upload"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  uploadProfilePicture(file);
+                                }
+                              }}
+                              disabled={editingSection !== 'profile'}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => document.getElementById('profile-picture-upload')?.click()}
+                              disabled={editingSection !== 'profile' || isUploading}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {isUploading ? 'Uploading...' : 'Upload Image'}
+                            </Button>
+                            {profileData.picture && (
+                              <div className="h-10 w-10 rounded-full overflow-hidden">
+                                <img 
+                                  src={profileData.picture} 
+                                  alt="Profile preview" 
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="profile-lud16">Lightning Address (lud16)</Label>
+                        <Input
+                          id="profile-lud16"
+                          value={profileData.lud16}
+                          onChange={(e) => handleProfileInputChange('lud16', e.target.value)}
+                          disabled={editingSection !== 'profile'}
+                          placeholder="name@domain.com"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="profile-nip05">Nostr Address (nip05)</Label>
+                        <Input
+                          id="profile-nip05"
+                          value={profileData.nip05}
+                          onChange={(e) => handleProfileInputChange('nip05', e.target.value)}
+                          disabled={editingSection !== 'profile'}
+                          placeholder="name@domain.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="profile-about">About</Label>
+                    <Textarea
+                      id="profile-about"
+                      value={profileData.about}
+                      onChange={(e) => handleProfileInputChange('about', e.target.value)}
+                      disabled={editingSection !== 'profile'}
+                      placeholder="Tell us about yourself"
+                      rows={4}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Podcast Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Mic className="w-5 h-5" />
+                    <span>Podcast Settings</span>
+                    {editingSection === 'podcast' && (
+                      <Badge variant="secondary">Editing</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Basic Information */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="title">Podcast Title</Label>
+                        <Input
+                          id="title"
+                          value={formData.title}
+                          onChange={(e) => handleInputChange('title', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Enter podcast title"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="author">Author/Host</Label>
+                        <Input
+                          id="author"
+                          value={formData.author}
+                          onChange={(e) => handleInputChange('author', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Enter author name"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="email">Contact Email</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange('email', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Enter contact email"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="language">Language</Label>
+                        <Input
+                          id="language"
+                          value={formData.language}
+                          onChange={(e) => handleInputChange('language', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="e.g., en-us"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="website">Website</Label>
+                        <Input
+                          id="website"
+                          value={formData.website}
+                          onChange={(e) => handleInputChange('website', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="https://example.com"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="copyright">Copyright</Label>
+                        <Input
+                          id="copyright"
+                          value={formData.copyright}
+                          onChange={(e) => handleInputChange('copyright', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="© 2025 Podcast Name"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="image">Cover Image</Label>
+                        <div className="space-y-2">
+                          <Input
+                            id="image"
+                            value={formData.image}
+                            onChange={(e) => handleInputChange('image', e.target.value)}
+                            disabled={editingSection !== 'podcast'}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                          <div className="flex items-center space-x-2">
+                            <input 
+                              type="file" 
+                              id="podcast-image-upload"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  uploadPodcastImage(file);
+                                }
+                              }}
+                              disabled={editingSection !== 'podcast'}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => document.getElementById('podcast-image-upload')?.click()}
+                              disabled={editingSection !== 'podcast' || isUploading}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              {isUploading ? 'Uploading...' : 'Upload Image'}
+                            </Button>
+                            {formData.image && (
+                              <div className="h-10 w-16 rounded overflow-hidden">
+                                <img 
+                                  src={formData.image} 
+                                  alt="Podcast cover preview" 
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="explicit"
+                          checked={formData.explicit}
+                          onCheckedChange={(checked) => handleInputChange('explicit', checked)}
+                          disabled={editingSection !== 'podcast'}
+                        />
+                        <Label htmlFor="explicit">Explicit Content</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={formData.description}
+                      onChange={(e) => handleInputChange('description', e.target.value)}
+                      disabled={editingSection !== 'podcast'}
+                      placeholder="Enter podcast description"
+                      rows={4}
+                    />
+                  </div>
+
+                  {/* Podcast 2.0 Advanced Settings */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="podcast-type">Podcast Type</Label>
+                        <select
+                          id="podcast-type"
+                          value={formData.type}
+                          onChange={(e) => handleInputChange('type', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="episodic">Episodic</option>
+                          <option value="serial">Serial</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label htmlFor="medium">Medium</Label>
+                        <select
+                          id="medium"
+                          value={formData.medium}
+                          onChange={(e) => handleInputChange('medium', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="podcast">Podcast</option>
+                          <option value="music">Music</option>
+                          <option value="video">Video</option>
+                          <option value="film">Film</option>
+                          <option value="audiobook">Audiobook</option>
+                          <option value="newsletter">Newsletter</option>
+                          <option value="blog">Blog</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="locked"
+                          checked={formData.locked}
+                          onCheckedChange={(checked) => handleInputChange('locked', checked)}
+                          disabled={editingSection !== 'podcast'}
+                        />
+                        <Label htmlFor="locked">Locked (Paid)</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="complete"
+                          checked={formData.complete}
+                          onCheckedChange={(checked) => handleInputChange('complete', checked)}
+                          disabled={editingSection !== 'podcast'}
+                        />
+                        <Label htmlFor="complete">Complete</Label>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="guid">GUID (Podcast Identifier)</Label>
+                        <Input
+                          id="guid"
+                          value={formData.guid}
+                          onChange={(e) => handleInputChange('guid', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Unique podcast identifier"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="publisher">Publisher</Label>
+                        <Input
+                          id="publisher"
+                          value={formData.publisher}
+                          onChange={(e) => handleInputChange('publisher', e.target.value)}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Publisher name"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="value-amount">Suggested Value</Label>
+                        <div className="flex space-x-2">
+                          <Input
+                            id="value-amount"
+                            type="number"
+                            value={formData.value.amount}
+                            onChange={(e) => handleInputChange('value', {
+                              ...formData.value,
+                              amount: parseFloat(e.target.value) || 0
+                            })}
+                            disabled={editingSection !== 'podcast'}
+                            placeholder="0"
+                            className="flex-1"
+                          />
+                          <select
+                            value={formData.value.currency}
+                            onChange={(e) => handleInputChange('value', {
+                              ...formData.value,
+                              currency: e.target.value
+                            })}
+                            disabled={editingSection !== 'podcast'}
+                            className="p-2 border rounded-md"
+                          >
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
+                            <option value="BTC">BTC</option>
+                            <option value="SATS">SATS</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="license-identifier">License</Label>
+                        <Input
+                          id="license-identifier"
+                          value={formData.license.identifier}
+                          onChange={(e) => handleInputChange('license', {
+                            ...formData.license,
+                            identifier: e.target.value
+                          })}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="e.g., CC BY 4.0"
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="license-url">License URL</Label>
+                        <Input
+                          id="license-url"
+                          value={formData.license.url || ''}
+                          onChange={(e) => handleInputChange('license', {
+                            ...formData.license,
+                            url: e.target.value
+                          })}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="https://creativecommons.org/licenses/..."
+                        />
+                      </div>
+
+                      <div>
+                        <Label htmlFor="location-name">Location</Label>
+                        <Input
+                          id="location-name"
+                          value={formData.location?.name || ''}
+                          onChange={(e) => handleInputChange('location', {
+                            ...formData.location,
+                            name: e.target.value
+                          })}
+                          disabled={editingSection !== 'podcast'}
+                          placeholder="Recording location"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Categories */}
+                  <div>
+                    <Label>Categories</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.categories.map((category) => (
+                        <Badge key={category} variant="secondary" className="flex items-center space-x-1">
+                          <span>{category}</span>
+                          {editingSection === 'podcast' && (
+                            <button
+                              onClick={() => handleCategoryRemove(category)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    {editingSection === 'podcast' && (
+                      <div className="flex space-x-2 mt-2">
+                        <Input
+                          placeholder="Add category"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleCategoryAdd((e.target as HTMLInputElement).value);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const input = document.querySelector('input[placeholder="Add category"]') as HTMLInputElement;
+                            if (input?.value) {
+                              handleCategoryAdd(input.value);
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Add categories that best describe your podcast content. This helps with discovery in podcast directories.
+                    </p>
+                  </div>
+
+                  {/* Funding Links */}
+                  <div>
+                    <Label>Funding Links</Label>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {formData.funding.map((funding, index) => (
+                        <Badge key={index} variant="outline" className="flex items-center space-x-1">
+                          <DollarSign className="w-3 h-3" />
+                          <span className="truncate max-w-xs">{funding}</span>
+                          {editingSection === 'podcast' && (
+                            <button
+                              onClick={() => handleFundingRemove(funding)}
+                              className="ml-1 hover:text-destructive"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          )}
+                        </Badge>
+                      ))}
+                    </div>
+
+                    {editingSection === 'podcast' && (
+                      <div className="flex space-x-2 mt-2">
+                        <Input
+                          placeholder="Add funding link (e.g., lightning:address@domain.com)"
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              handleFundingAdd((e.target as HTMLInputElement).value);
+                              (e.target as HTMLInputElement).value = '';
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const input = document.querySelector('input[placeholder^="Add funding"]') as HTMLInputElement;
+                            if (input?.value) {
+                              handleFundingAdd(input.value);
+                              input.value = '';
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    )}
+
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Add funding links for listeners to support your podcast. Supports Lightning addresses and other payment methods.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Episodes Tab */}
+            <TabsContent value="episodes" className="space-y-6">
+              <EpisodeManagement />
+            </TabsContent>
+
+            {/* Analytics Tab */}
+            <TabsContent value="analytics" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Users className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-sm text-muted-foreground">Total Listeners</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Zap className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-sm text-muted-foreground">Total Zaps</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Mic className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-sm text-muted-foreground">Episodes</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Globe className="w-12 h-12 mx-auto mb-4 text-primary" />
+                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-sm text-muted-foreground">Downloads</div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Analytics Dashboard</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">
+                    Detailed analytics coming soon! Track your podcast performance, listener demographics, and engagement metrics.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Studio;
