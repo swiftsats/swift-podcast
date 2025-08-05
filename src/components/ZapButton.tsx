@@ -17,7 +17,7 @@ interface ZapButtonProps {
 
 export function ZapButton({
   target,
-  className: _className = "text-xs ml-1",
+  className = "",
   showCount = true,
   zapData: externalZapData,
   onZapSuccess
@@ -26,15 +26,20 @@ export function ZapButton({
   const { data: author } = useAuthor(target?.pubkey || '');
   const { webln, activeNWC } = useWallet();
 
-  // Only fetch data if not provided externally
+  // Only fetch data if external data is not provided and user is logged in
   const { totalSats: fetchedTotalSats, isLoading } = useZaps(
-    externalZapData ? [] : target ?? [], // Empty array prevents fetching if external data provided
+    externalZapData ? [] : target ?? [], // Only fetch if no external data provided
     webln,
     activeNWC
   );
 
-  // Don't show zap button if user is not logged in, is the author, or author has no lightning address
-  if (!user || !target || user.pubkey === target.pubkey || (!author?.metadata?.lud16 && !author?.metadata?.lud06)) {
+  // Don't show zap button if no target or user is not logged in
+  if (!target || !user) {
+    return null;
+  }
+
+  // Don't show zap button if user is the author or author has no lightning address
+  if (user.pubkey === target.pubkey || (!author?.metadata?.lud16 && !author?.metadata?.lud06)) {
     return null;
   }
 
@@ -42,15 +47,16 @@ export function ZapButton({
   const totalSats = externalZapData?.totalSats ?? fetchedTotalSats;
   const showLoading = externalZapData?.isLoading || isLoading;
 
+  // User can zap - show clickable zap dialog
   return (
     <ZapDialog target={target} onZapSuccess={onZapSuccess}>
       <Button
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-yellow-500"
+        className={`text-muted-foreground hover:text-yellow-500 ${className}`}
       >
-        <Zap className="w-4 h-4 mr-1" />
-        <span className="text-xs">
+        <Zap className="w-5 h-5 sm:w-4 sm:h-4 mr-1.5 sm:mr-1" />
+        <span className="text-sm sm:text-xs">
           {showLoading ? (
             '...'
           ) : externalZapData ? (

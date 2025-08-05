@@ -125,92 +125,111 @@ export function PersistentAudioPlayer() {
       <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
         {/* Main Player Bar */}
         <div className="px-4 py-3">
-          {/* Top Row: Episode Info & Controls */}
-          <div className="flex items-center space-x-2 sm:space-x-4 mb-2">
-            {/* Episode Info */}
-            <div className="flex items-center space-x-3 min-w-0 flex-1">
-              {episode.imageUrl && (
-                <img
-                  src={episode.imageUrl}
-                  alt={episode.title}
-                  className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover flex-shrink-0"
-                />
-              )}
-              <div className="min-w-0 flex-1">
-                <Link
-                  to={`/${episodeNevent}`}
-                  className="font-medium text-xs sm:text-sm hover:text-primary transition-colors line-clamp-1"
-                >
-                  {episode.title}
-                </Link>
-                <div className="flex items-center space-x-2 text-xs text-muted-foreground">
-                  {state.error && (
-                    <Badge variant="destructive" className="text-xs">
-                      Error
-                    </Badge>
-                  )}
-                  {state.isLoading && (
-                    <Badge variant="secondary" className="text-xs">
-                      Loading...
-                    </Badge>
-                  )}
-                </div>
+          {/* Episode Info Row */}
+          <div className="flex items-center space-x-3 mb-3">
+            {episode.imageUrl && (
+              <img
+                src={episode.imageUrl}
+                alt={episode.title}
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded object-cover flex-shrink-0"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <Link
+                to={`/${episodeNevent}`}
+                className="font-medium text-xs sm:text-sm hover:text-primary transition-colors line-clamp-1"
+              >
+                {episode.title}
+              </Link>
+              <div className="flex items-center space-x-2 text-xs text-muted-foreground">
+                {state.error && (
+                  <Badge variant="destructive" className="text-xs">
+                    Error
+                  </Badge>
+                )}
+                {state.isLoading && (
+                  <Badge variant="secondary" className="text-xs">
+                    Loading...
+                  </Badge>
+                )}
               </div>
             </div>
-
-            {/* Playback Controls */}
-            <div className="flex items-center space-x-1 sm:space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSkipBack}
-                disabled={!episode.audioUrl}
-                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
-              >
-                <SkipBack className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handlePlayPause}
-                disabled={!episode.audioUrl || state.isLoading}
-                className="h-9 w-9 sm:h-10 sm:w-10 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {state.isPlaying ? (
-                  <Pause className="h-4 w-4 sm:h-5 sm:w-5" />
-                ) : (
-                  <Play className="h-4 w-4 sm:h-5 sm:w-5 ml-0.5" />
-                )}
-              </Button>
+            
+            {/* Expand & Close Controls - Top right */}
+            <div className="flex items-center space-x-1">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 sm:h-9 sm:w-9 p-0">
+                  {isExpanded ? (
+                    <ChevronDown className="h-4 w-4 sm:h-5 sm:w-5" />
+                  ) : (
+                    <ChevronUp className="h-4 w-4 sm:h-5 sm:w-5" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
 
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleSkipForward}
-                disabled={!episode.audioUrl}
-                className="h-7 w-7 sm:h-8 sm:w-8 p-0"
+                onClick={stop}
+                className="h-8 w-8 sm:h-9 sm:w-9 p-0 text-muted-foreground hover:text-foreground"
               >
-                <SkipForward className="h-3 w-3 sm:h-4 sm:w-4" />
+                <X className="h-4 w-4 sm:h-5 sm:w-5" />
               </Button>
             </div>
+          </div>
 
-            {/* Volume Controls - Hidden on mobile */}
-            <div className="hidden sm:flex items-center space-x-1">
+          {/* Playback Controls Row - Centered on desktop, full width on mobile */}
+          <div className="flex items-center justify-center sm:justify-center space-x-3 sm:space-x-4 mb-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkipBack}
+              disabled={!episode.audioUrl}
+              className="h-10 w-10 sm:h-11 sm:w-11 p-0"
+            >
+              <SkipBack className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handlePlayPause}
+              disabled={!episode.audioUrl || state.isLoading}
+              className="h-12 w-12 sm:h-14 sm:w-14 p-0 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {state.isPlaying ? (
+                <Pause className="h-6 w-6 sm:h-7 sm:w-7" />
+              ) : (
+                <Play className="h-6 w-6 sm:h-7 sm:w-7 ml-0.5" />
+              )}
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSkipForward}
+              disabled={!episode.audioUrl}
+              className="h-10 w-10 sm:h-11 sm:w-11 p-0"
+            >
+              <SkipForward className="h-5 w-5 sm:h-6 sm:w-6" />
+            </Button>
+
+            {/* Volume Controls - Visible on desktop only */}
+            <div className="hidden sm:flex items-center space-x-2 ml-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleMuteToggle}
-                className="h-8 w-8 p-0"
+                className="h-9 w-9 p-0"
               >
                 {isMuted || state.volume === 0 ? (
-                  <VolumeX className="h-4 w-4" />
+                  <VolumeX className="h-5 w-5" />
                 ) : (
-                  <Volume2 className="h-4 w-4" />
+                  <Volume2 className="h-5 w-5" />
                 )}
               </Button>
 
-              <div className="w-16">
+              <div className="w-20">
                 <Slider
                   value={[isMuted ? 0 : state.volume]}
                   max={1}
@@ -220,38 +239,25 @@ export function PersistentAudioPlayer() {
                 />
               </div>
             </div>
+          </div>
 
-            {/* Episode Actions - Always visible, scale appropriately */}
-            <div className="flex items-center">
-              <EpisodeActions
-                episode={episode}
-                showComments={showComments}
-                onToggleComments={() => setShowComments(!showComments)}
-                className="scale-75 xs:scale-90 sm:scale-100"
-              />
-            </div>
-
-            {/* Expand & Close Controls */}
-            <div className="flex items-center space-x-1">
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-7 w-7 sm:h-8 sm:w-8 p-0">
-                  {isExpanded ? (
-                    <ChevronDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                  ) : (
-                    <ChevronUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                  )}
-                </Button>
-              </CollapsibleTrigger>
-
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={stop}
-                className="h-7 w-7 sm:h-8 sm:w-8 p-0 text-muted-foreground hover:text-foreground"
-              >
-                <X className="h-3 w-3 sm:h-4 sm:w-4" />
-              </Button>
-            </div>
+          {/* Episode Actions Row - Centered */}
+          <div className="flex items-center justify-center mb-2">
+            <EpisodeActions
+              episode={episode}
+              showComments={showComments}
+              onToggleComments={() => {
+                if (!showComments) {
+                  // Auto-expand player and show comments
+                  setIsExpanded(true);
+                  setShowComments(true);
+                } else {
+                  // Just toggle comments off
+                  setShowComments(false);
+                }
+              }}
+              className="scale-110 sm:scale-100"
+            />
           </div>
 
           {/* Bottom Row: Progress Bar & Time */}
@@ -276,7 +282,7 @@ export function PersistentAudioPlayer() {
 
         {/* Expanded Controls */}
         <CollapsibleContent>
-          <div className="px-4 pb-4 border-t">
+          <div className="px-4 pb-4 border-t max-h-[70vh] sm:max-h-none overflow-y-auto">
             <Card className="mt-4">
               <CardContent className="p-4">
                 <div className="space-y-4">
@@ -375,7 +381,7 @@ export function PersistentAudioPlayer() {
                   {showComments && (
                     <div>
                       <h4 className="font-semibold mb-2">Episode Discussion</h4>
-                      <div className="max-h-96 overflow-y-auto">
+                      <div className="max-h-60 sm:max-h-96 overflow-y-auto">
                         <CommentsSection
                           root={episodeEvent}
                           title=""

@@ -96,7 +96,7 @@ const Index = () => {
                           </Button>
 
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            {latestEpisode.zapCount && latestEpisode.zapCount > 0 && (
+                            {user && latestEpisode.zapCount && latestEpisode.zapCount > 0 && (
                               <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full">
                                 <Zap className="w-3 h-3 text-primary" />
                                 <span className="font-medium">

@@ -205,22 +205,22 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
   };
 
   return (
-    <div className={cn("flex items-center space-x-2", className)}>
+    <div className={cn("flex items-center space-x-3 sm:space-x-2", className)}>
       {/* Comment Button */}
       <Button
         variant="ghost"
         size="sm"
         className={cn(
-          "text-muted-foreground hover:text-blue-500 h-8 px-2",
+          "text-muted-foreground hover:text-blue-500 h-10 px-3 sm:h-8 sm:px-2",
           showComments && "text-blue-500"
         )}
         onClick={onToggleComments}
       >
         <MessageCircle className={cn(
-          "w-4 h-4 mr-1",
+          "w-5 h-5 sm:w-4 sm:h-4 mr-1.5 sm:mr-1",
           showComments && "fill-current"
         )} />
-        <span className="text-xs">
+        <span className="text-sm sm:text-xs">
           {commentCount}
         </span>
       </Button>
@@ -230,16 +230,16 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
         variant="ghost"
         size="sm"
         className={cn(
-          "text-muted-foreground hover:text-red-500 h-8 px-2",
+          "text-muted-foreground hover:text-red-500 h-10 px-3 sm:h-8 sm:px-2",
           userInteractions?.hasLiked && "text-red-500"
         )}
         onClick={handleLike}
       >
         <Heart className={cn(
-          "w-4 h-4 mr-1",
+          "w-5 h-5 sm:w-4 sm:h-4 mr-1.5 sm:mr-1",
           userInteractions?.hasLiked && "fill-current"
         )} />
-        <span className="text-xs">
+        <span className="text-sm sm:text-xs">
           {interactionCounts?.likes || 0}
         </span>
       </Button>
@@ -247,7 +247,7 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
       {/* Zap Button */}
       <ZapButton
         target={event}
-        className="text-xs h-8 px-2"
+        className="text-sm sm:text-xs h-10 px-3 sm:h-8 sm:px-2"
         zapData={{
           count: interactionCounts?.zaps || 0,
           totalSats: interactionCounts?.totalSats || 0,
@@ -266,10 +266,10 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
       <Button
         variant="ghost"
         size="sm"
-        className="text-muted-foreground hover:text-blue-500 h-8 px-2"
+        className="text-muted-foreground hover:text-blue-500 h-10 px-3 sm:h-8 sm:px-2"
         onClick={handleShare}
       >
-        <Share className="w-4 h-4" />
+        <Share className="w-5 h-5 sm:w-4 sm:h-4" />
       </Button>
 
     </div>
