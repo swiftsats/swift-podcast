@@ -47,12 +47,13 @@ export function useDeleteNote() {
       queryClient.invalidateQueries({ queryKey: ['creator-notes'] });
       
       // Optimistically remove the deleted event from cache
-      queryClient.setQueryData(['creator-posts'], (oldData: any) => {
-        if (!oldData) return oldData;
+      queryClient.setQueryData(['creator-posts'], (oldData: unknown) => {
+        if (!oldData || typeof oldData !== 'object' || !('pages' in oldData)) return oldData;
         
+        const typedOldData = oldData as { pages: NostrEvent[][] };
         return {
-          ...oldData,
-          pages: oldData.pages.map((page: NostrEvent[]) =>
+          ...typedOldData,
+          pages: typedOldData.pages.map((page: NostrEvent[]) =>
             page.filter((event: NostrEvent) => event.id !== deletedEvent.id)
           )
         };

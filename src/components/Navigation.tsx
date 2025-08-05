@@ -50,7 +50,7 @@ export function Navigation({ className }: NavigationProps) {
     {
       path: '/social',
       icon: MessageSquare,
-      label: 'Social Feed',
+      label: 'Social',
       description: 'Creator updates'
     },
     {

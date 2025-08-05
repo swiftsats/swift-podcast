@@ -13,6 +13,7 @@ interface ZapButtonProps {
   showCount?: boolean;
   zapData?: { count: number; totalSats: number; isLoading?: boolean };
   onZapSuccess?: (amount: number) => void;
+  hideWhenEmpty?: boolean;
 }
 
 export function ZapButton({
@@ -20,7 +21,8 @@ export function ZapButton({
   className = "",
   showCount = true,
   zapData: externalZapData,
-  onZapSuccess
+  onZapSuccess,
+  hideWhenEmpty = false
 }: ZapButtonProps) {
   const { user } = useCurrentUser();
   const { data: author } = useAuthor(target?.pubkey || '');
@@ -47,6 +49,21 @@ export function ZapButton({
   const totalSats = externalZapData?.totalSats ?? fetchedTotalSats;
   const showLoading = externalZapData?.isLoading || isLoading;
 
+  // Hide button completely if hideWhenEmpty is true and there are no sats
+  if (hideWhenEmpty && !showLoading) {
+    if (externalZapData) {
+      // When using external data, check if totalSats is greater than 0
+      if (!externalZapData.totalSats || externalZapData.totalSats <= 0) {
+        return null;
+      }
+    } else {
+      // When using fetched data, check if totalSats is greater than 0
+      if (!totalSats || totalSats <= 0) {
+        return null;
+      }
+    }
+  }
+
   // User can zap - show clickable zap dialog
   return (
     <ZapDialog target={target} onZapSuccess={onZapSuccess}>
@@ -60,11 +77,11 @@ export function ZapButton({
           {showLoading ? (
             '...'
           ) : externalZapData ? (
-            externalZapData.totalSats || 0
+            externalZapData.totalSats > 0 ? externalZapData.totalSats.toLocaleString() : ''
           ) : showCount && totalSats > 0 ? (
             `${totalSats.toLocaleString()}`
           ) : (
-            '0'
+            ''
           )}
         </span>
       </Button>

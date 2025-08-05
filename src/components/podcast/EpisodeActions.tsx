@@ -253,6 +253,7 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
           totalSats: interactionCounts?.totalSats || 0,
           isLoading: false
         }}
+        hideWhenEmpty={true}
         onZapSuccess={(amount: number) => {
           // Optimistically update interaction counts when zap succeeds
           queryClient.setQueryData(['episode-interaction-counts', episode.eventId], (old: InteractionCounts | undefined) => {

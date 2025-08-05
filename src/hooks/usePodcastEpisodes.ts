@@ -171,8 +171,8 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
         const zaps = zapData.get(episode.eventId);
         return {
           ...episode,
-          zapCount: zaps?.count || 0,
-          totalSats: zaps?.totalSats || 0
+          ...(zaps && zaps.count > 0 ? { zapCount: zaps.count } : {}),
+          ...(zaps && zaps.totalSats > 0 ? { totalSats: zaps.totalSats } : {})
         };
       });
 

@@ -96,14 +96,11 @@ const Index = () => {
                           </Button>
 
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                            {user && latestEpisode.zapCount && latestEpisode.zapCount > 0 && (
+                            {user && latestEpisode.totalSats && latestEpisode.totalSats > 0 && (
                               <div className="flex items-center space-x-1 bg-primary/10 px-2 py-1 rounded-full">
                                 <Zap className="w-3 h-3 text-primary" />
                                 <span className="font-medium">
-                                  {latestEpisode.totalSats && latestEpisode.totalSats > 0
-                                    ? `${latestEpisode.totalSats.toLocaleString()} sats`
-                                    : `${latestEpisode.zapCount} zaps`
-                                  }
+                                  {latestEpisode.totalSats.toLocaleString()} sats
                                 </span>
                               </div>
                             )}

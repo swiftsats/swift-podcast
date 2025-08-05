@@ -216,6 +216,7 @@ export function EpisodeCard({
                 totalSats: episode.totalSats || 0,
                 isLoading: false
               }}
+              hideWhenEmpty={true}
             />
           </div>
 

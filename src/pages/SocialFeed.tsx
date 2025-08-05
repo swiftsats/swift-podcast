@@ -127,8 +127,10 @@ const SocialFeed = () => {
                 placeholder="Share your thoughts with your audience..."
                 onSuccess={(newEvent) => {
                   // Optimistically add the new note to the top of the feed
-                  queryClient.setQueryData(['creator-posts'], (oldData: any) => {
-                    if (!oldData) return oldData;
+                  queryClient.setQueryData(['creator-posts'], (oldData: unknown) => {
+                    if (!oldData || typeof oldData !== 'object' || !('pages' in oldData)) return oldData;
+                    
+                    const typedOldData = oldData as { pages: NostrEvent[][] };
                     
                     // Create the optimistic note
                     const optimisticNote: NostrEvent = {
@@ -142,7 +144,7 @@ const SocialFeed = () => {
                     };
 
                     // Add to the first page
-                    const updatedPages = [...oldData.pages];
+                    const updatedPages = [...typedOldData.pages];
                     if (updatedPages[0]) {
                       updatedPages[0] = [optimisticNote, ...updatedPages[0]];
                     } else {
@@ -150,7 +152,7 @@ const SocialFeed = () => {
                     }
 
                     return {
-                      ...oldData,
+                      ...typedOldData,
                       pages: updatedPages
                     };
                   });

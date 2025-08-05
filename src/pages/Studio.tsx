@@ -12,7 +12,8 @@ import {
   Zap,
   Loader2,
   User,
-  DollarSign
+  DollarSign,
+  Server
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +35,7 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { isPodcastCreator, PODCAST_CONFIG, getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
 import { genRSSFeed } from '@/lib/rssGenerator';
 import { EpisodeManagement } from '@/components/studio/EpisodeManagement';
+import { BlossomServerManager } from '@/components/studio/BlossomServerManager';
 
 interface ProfileFormData {
   name: string;
@@ -552,7 +554,7 @@ const Studio = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="settings" className="flex items-center space-x-2">
                 <Settings className="w-4 h-4" />
                 <span>Settings</span>
@@ -560,6 +562,10 @@ const Studio = () => {
               <TabsTrigger value="episodes" className="flex items-center space-x-2">
                 <Mic className="w-4 h-4" />
                 <span>Episodes</span>
+              </TabsTrigger>
+              <TabsTrigger value="blossom" className="flex items-center space-x-2">
+                <Server className="w-4 h-4" />
+                <span>Media Servers</span>
               </TabsTrigger>
               <TabsTrigger value="analytics" className="flex items-center space-x-2">
                 <Zap className="w-4 h-4" />
@@ -1124,6 +1130,11 @@ const Studio = () => {
             {/* Episodes Tab */}
             <TabsContent value="episodes" className="space-y-6">
               <EpisodeManagement />
+            </TabsContent>
+
+            {/* Blossom Media Servers Tab */}
+            <TabsContent value="blossom" className="space-y-6">
+              <BlossomServerManager />
             </TabsContent>
 
             {/* Analytics Tab */}
