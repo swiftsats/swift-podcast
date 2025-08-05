@@ -34,7 +34,7 @@ function validateRSSStructure(xmlContent: string): { valid: boolean; errors: str
   }
 
   // Check tag balance
-  const openTags = (xmlContent.match(/<[^\/][^>]*>/g) || []).length;
+  const openTags = (xmlContent.match(/<[^/][^>]*>/g) || []).length;
   const closeTags = (xmlContent.match(/<\/[^>]*>/g) || []).length;
 
   if (openTags !== closeTags) {

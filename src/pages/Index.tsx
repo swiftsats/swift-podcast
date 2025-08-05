@@ -10,12 +10,12 @@ import { EpisodeList } from '@/components/podcast/EpisodeList';
 import { ZapLeaderboard } from '@/components/podcast/ZapLeaderboard';
 import { RecentActivity } from '@/components/podcast/RecentActivity';
 import { ZapDialog } from '@/components/ZapDialog';
-import { AudioPlayer } from '@/components/podcast/AudioPlayer';
 import type { PodcastEpisode } from '@/types/podcast';
 import { useLatestEpisode } from '@/hooks/usePodcastEpisodes';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
 
 const Index = () => {
@@ -23,11 +23,12 @@ const Index = () => {
   const podcastConfig = usePodcastConfig();
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
   const { user } = useCurrentUser();
-  const [currentEpisode, setCurrentEpisode] = useState<PodcastEpisode | null>(null);
+  const { playEpisode } = useAudioPlayer();
+  const _currentEpisode = useState<PodcastEpisode | null>(null);
 
   const handlePlayLatestEpisode = () => {
     if (latestEpisode) {
-      setCurrentEpisode(latestEpisode);
+      playEpisode(latestEpisode);
     }
   };
 
@@ -166,12 +167,6 @@ const Index = () => {
               </div>
             </section>
 
-            {/* Audio Player */}
-            {currentEpisode && (
-              <section>
-                <AudioPlayer episode={currentEpisode} autoPlay={true} />
-              </section>
-            )}
 
             {/* Recent Episodes Preview */}
             <section className="animate-fade-in-up">
@@ -187,7 +182,14 @@ const Index = () => {
                 </Button>
               </div>
 
-              <EpisodeList showSearch={false} showPlayer={false} limit={3} onPlayEpisode={setCurrentEpisode} />
+              <EpisodeList
+                showSearch={false}
+                _showPlayer={false}
+                limit={3}
+                onPlayEpisode={(episode) => {
+                  playEpisode(episode);
+                }}
+              />
             </section>
           </div>
 

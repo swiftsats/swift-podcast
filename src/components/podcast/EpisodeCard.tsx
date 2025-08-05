@@ -10,6 +10,7 @@ import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
 import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import { useComments } from '@/hooks/useComments';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { cn } from '@/lib/utils';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -30,6 +31,7 @@ export function EpisodeCard({
   className
 }: EpisodeCardProps) {
   const [commentsVisible, setCommentsVisible] = useState(showComments);
+  const { playEpisode } = useAudioPlayer();
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
 
@@ -175,7 +177,10 @@ export function EpisodeCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Button
-              onClick={() => onPlayEpisode?.(episode)}
+              onClick={() => {
+                playEpisode(episode);
+                onPlayEpisode?.(episode);
+              }}
               className="flex-shrink-0"
             >
               Play Episode

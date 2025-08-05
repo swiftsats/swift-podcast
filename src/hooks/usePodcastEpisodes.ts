@@ -133,9 +133,9 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
 
       // Fetch zap data for all episodes in a single query
       const episodeIds = validEpisodes.map(ep => ep.eventId);
-      
-      let zapData: Map<string, { count: number; totalSats: number }> = new Map();
-      
+
+      const zapData: Map<string, { count: number; totalSats: number }> = new Map();
+
       if (episodeIds.length > 0) {
         try {
           // Query for all zaps to these episodes
@@ -147,14 +147,14 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
 
           // Process zap events and group by episode
           const validZaps = zapEvents.filter(validateZapEvent);
-          
+
           validZaps.forEach(zapEvent => {
             const episodeId = zapEvent.tags.find(([name]) => name === 'e')?.[1];
             if (!episodeId) return;
 
             const amount = extractZapAmount(zapEvent);
             const existing = zapData.get(episodeId) || { count: 0, totalSats: 0 };
-            
+
             zapData.set(episodeId, {
               count: existing.count + 1,
               totalSats: existing.totalSats + amount

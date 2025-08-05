@@ -12,6 +12,7 @@ import RSSFeed from "./pages/RSSFeed";
 import DebugAudio from "./pages/DebugAudio";
 import { NIP19Page } from "./pages/NIP19Page";
 import NotFound from "./pages/NotFound";
+import { PersistentAudioPlayer } from "./components/audio/PersistentAudioPlayer";
 
 export function AppRouter() {
   return (
@@ -32,6 +33,7 @@ export function AppRouter() {
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <PersistentAudioPlayer />
     </BrowserRouter>
   );
 }

@@ -13,6 +13,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { AppConfig } from '@/contexts/AppContext';
+import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -51,13 +52,15 @@ export function App() {
           <NostrLoginProvider storageKey='nostr:login'>
             <NostrProvider>
               <NWCProvider>
-                <TooltipProvider>
-                  <Toaster />
-                  <Sonner />
-                  <Suspense>
-                    <AppRouter />
-                  </Suspense>
-                </TooltipProvider>
+                <AudioPlayerProvider>
+                  <TooltipProvider>
+                    <Toaster />
+                    <Sonner />
+                    <Suspense>
+                      <AppRouter />
+                    </Suspense>
+                  </TooltipProvider>
+                </AudioPlayerProvider>
               </NWCProvider>
             </NostrProvider>
           </NostrLoginProvider>

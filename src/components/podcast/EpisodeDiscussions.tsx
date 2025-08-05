@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { nip19 } from 'nostr-tools';
 import { formatDistanceToNow } from 'date-fns';
 import { MessageCircle, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,7 +15,7 @@ import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import { genUserName } from '@/lib/genUserName';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-interface EpisodeComment {
+interface _EpisodeComment {
   comment: NostrEvent;
   episodeId: string;
   episodeTitle?: string;
@@ -52,21 +52,21 @@ export function EpisodeDiscussions({ limit = 20, className }: EpisodeDiscussions
       const episodeMap = new Map(episodes.map(ep => [ep.eventId, ep]));
 
       // Process and enrich comments with episode info
-      const enrichedComments: EpisodeComment[] = commentEvents
+      const enrichedComments = commentEvents
         .map(comment => {
           // Find which episode this comment is for
           const episodeIdTag = comment.tags.find(([name]) => name === 'e')?.[1];
           if (!episodeIdTag) return null;
 
           const episode = episodeMap.get(episodeIdTag);
-          
+
           return {
             comment,
             episodeId: episodeIdTag,
             episodeTitle: episode?.title
           };
         })
-        .filter((item): item is EpisodeComment => item !== null)
+        .filter((item): item is NonNullable<typeof item> => item !== null)
         .sort((a, b) => b.comment.created_at - a.comment.created_at) // Most recent first
         .slice(0, limit); // Apply final limit
 
@@ -115,7 +115,7 @@ export function EpisodeDiscussions({ limit = 20, className }: EpisodeDiscussions
     );
   }
 
-  if (!commentsData || commentsData.length === 0) {
+  if (!commentsData || commentsData.filter(item => item !== null).length === 0) {
     return (
       <Card className={className}>
         <CardContent className="py-12 text-center">
@@ -138,7 +138,7 @@ export function EpisodeDiscussions({ limit = 20, className }: EpisodeDiscussions
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {commentsData.map(({ comment, episodeId, episodeTitle }) => (
+      {commentsData?.filter(item => item !== null).map(({ comment, episodeId, episodeTitle }) => (
         <CommentCard
           key={comment.id}
           comment={comment}
@@ -164,7 +164,7 @@ function CommentCard({ comment, episodeId, episodeTitle }: CommentCardProps) {
 
   // Generate links
   const authorNpub = nip19.npubEncode(comment.pubkey);
-  const episodeNevent = encodeEventIdAsNevent(episodeId);
+  const episodeNevent = encodeEventIdAsNevent(episodeId, comment.pubkey);
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -180,7 +180,7 @@ function CommentCard({ comment, episodeId, episodeTitle }: CommentCardProps) {
               </Avatar>
             </Link>
             <div>
-              <Link 
+              <Link
                 to={`/${authorNpub}`}
                 className="font-medium text-sm hover:text-primary transition-colors"
               >
@@ -196,7 +196,7 @@ function CommentCard({ comment, episodeId, episodeTitle }: CommentCardProps) {
           </Badge>
         </div>
       </CardHeader>
-      
+
       <CardContent>
         <div className="space-y-3">
           {/* Comment Content */}

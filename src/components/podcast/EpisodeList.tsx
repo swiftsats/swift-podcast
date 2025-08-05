@@ -6,33 +6,32 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EpisodeCard } from './EpisodeCard';
-import { AudioPlayer } from './AudioPlayer';
 import { usePodcastEpisodes } from '@/hooks/usePodcastEpisodes';
 import type { PodcastEpisode, EpisodeSearchOptions } from '@/types/podcast';
 
 interface EpisodeListProps {
   showSearch?: boolean;
-  showPlayer?: boolean;
+  _showPlayer?: boolean;
   limit?: number;
   className?: string;
   onPlayEpisode?: (episode: PodcastEpisode) => void;
-  autoPlay?: boolean;
+  _autoPlay?: boolean;
 }
 
 export function EpisodeList({
   showSearch = true,
-  showPlayer = true,
+  _showPlayer = true,
   limit = 50,
   className,
   onPlayEpisode,
-  autoPlay = false
+  _autoPlay = false
 }: EpisodeListProps) {
   const [searchOptions, setSearchOptions] = useState<EpisodeSearchOptions>({
     limit,
     sortBy: 'date',
     sortOrder: 'desc'
   });
-  const [currentEpisode, setCurrentEpisode] = useState<PodcastEpisode | null>(null);
+  const _currentEpisode = useState<PodcastEpisode | null>(null);
 
   const { data: episodes, isLoading, error } = usePodcastEpisodes(searchOptions);
 
@@ -57,8 +56,6 @@ export function EpisodeList({
   const handlePlayEpisode = (episode: PodcastEpisode) => {
     if (onPlayEpisode) {
       onPlayEpisode(episode);
-    } else {
-      setCurrentEpisode(episode);
     }
   };
 
@@ -121,11 +118,6 @@ export function EpisodeList({
         </div>
       )}
 
-      {showPlayer && currentEpisode && (
-        <div className="mb-6">
-          <AudioPlayer episode={currentEpisode} autoPlay={autoPlay} />
-        </div>
-      )}
 
       {isLoading ? (
         <div className="space-y-6">

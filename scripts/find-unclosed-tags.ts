@@ -8,7 +8,7 @@ const __dirname = dirname(__filename);
 function findUnclosedTags(xmlContent: string) {
   const lines = xmlContent.split('\n');
   const tagStack: string[] = [];
-  const unclosedTags: string[] = [];
+  const _unclosedTags: string[] = [];
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -18,7 +18,7 @@ function findUnclosedTags(xmlContent: string) {
     }
 
     // Find opening tags (not self-closing and not closing tags)
-    const openingTagMatch = line.match(/<([^\/\?][^>]*)(?:\s[^>]*)?(?<!\/)>$/);
+    const openingTagMatch = line.match(/<<([^/?][^>]*)(?:\s[^>]*)?(?<!\/)>$/);
     if (openingTagMatch && !line.endsWith('/>')) {
       const tagName = openingTagMatch[1].split(' ')[0]; // Get tag name without attributes
       tagStack.push(tagName);

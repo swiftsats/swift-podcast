@@ -36,7 +36,7 @@ function simpleXMLValidator(xmlContent: string) {
   const singleLineContent = withoutSelfClosing.replace(/>\s*</g, '><').replace(/\s+/g, ' ');
 
   // Count opening and closing tags
-  const openingTags = (singleLineContent.match(/<[^\/\?][^>]*>(?![^<]*<\/)/g) || []).length;
+  const openingTags = (singleLineContent.match(/<[^/?][^>]*>(?![^<]*<\/)/g) || []).length;
   const closingTags = (singleLineContent.match(/<\/[^>]*>/g) || []).length;
 
   console.log(`📊 Tag Count Analysis:`);

@@ -1,7 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { Link } from 'react-router-dom';
 import { MessageCircle, Users, TrendingUp } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Navigation } from '@/components/Navigation';
@@ -19,7 +17,7 @@ const Community = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      
+
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
@@ -114,7 +112,7 @@ const Community = () => {
                         <p className="text-muted-foreground">Share your thoughts on individual episodes</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-start space-x-3">
                       <TrendingUp className="w-4 h-4 mt-1 text-green-500" />
                       <div>
@@ -122,7 +120,7 @@ const Community = () => {
                         <p className="text-muted-foreground">Support the creator with Lightning tips</p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-start space-x-3">
                       <Users className="w-4 h-4 mt-1 text-purple-500" />
                       <div>

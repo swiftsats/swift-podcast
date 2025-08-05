@@ -8,7 +8,7 @@ interface NostrProviderProps {
   children: React.ReactNode;
 }
 
-const NostrProvider: React.FC<NostrProviderProps> = (props) => {
+function NostrProvider(props: NostrProviderProps) {
   const { children } = props;
   const { config, presetRelays } = useAppContext();
 
@@ -58,6 +58,6 @@ const NostrProvider: React.FC<NostrProviderProps> = (props) => {
       {children}
     </NostrContext.Provider>
   );
-};
+}
 
 export default NostrProvider;

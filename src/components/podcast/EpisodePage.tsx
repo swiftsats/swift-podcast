@@ -6,13 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { NoteContent } from '@/components/NoteContent';
-import { AudioPlayer } from './AudioPlayer';
 import { EpisodeActions } from './EpisodeActions';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Navigation } from '@/components/Navigation';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
+import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -23,7 +23,7 @@ interface EpisodePageProps {
 export function EpisodePage({ eventId }: EpisodePageProps) {
   const { nostr } = useNostr();
   const navigate = useNavigate();
-  const [showPlayer, setShowPlayer] = useState(false);
+  const { playEpisode } = useAudioPlayer();
   const [showComments, setShowComments] = useState(true);
 
   // Query for the episode event
@@ -268,7 +268,11 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-4 border-t">
                 <div className="flex items-center gap-3">
                   <Button
-                    onClick={() => setShowPlayer(true)}
+                    onClick={() => {
+                      if (episode.audioUrl) {
+                        playEpisode(episode);
+                      }
+                    }}
                     disabled={!episode.audioUrl}
                     className="flex items-center gap-2"
                   >
@@ -284,8 +288,8 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
                 </div>
 
                 {/* Social Actions */}
-                <EpisodeActions 
-                  episode={episode} 
+                <EpisodeActions
+                  episode={episode}
                   showComments={showComments}
                   onToggleComments={() => setShowComments(!showComments)}
                 />
@@ -293,10 +297,6 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
             </CardContent>
           </Card>
 
-          {/* Audio Player */}
-          {showPlayer && episode.audioUrl && (
-            <AudioPlayer episode={episode} autoPlay={true} />
-          )}
 
           {/* Comments Section */}
           {showComments && (
