@@ -6,11 +6,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Navigation } from '@/components/Navigation';
 import { PostCard } from '@/components/social/PostCard';
 import { ConversationThread } from '@/components/social/ConversationThread';
+import { NoteComposer } from '@/components/social/NoteComposer';
 import { InfiniteScroll } from '@/components/ui/InfiniteScroll';
 import { useCreatorPosts, useCreatorRepliesTab } from '@/hooks/useCreatorPosts';
 import { useAuthor } from '@/hooks/useAuthor';
-import { getCreatorPubkeyHex, PODCAST_CONFIG } from '@/lib/podcastConfig';
+import { useCurrentUser } from '@/hooks/useCurrentUser';
+import { useQueryClient } from '@tanstack/react-query';
+import { getCreatorPubkeyHex, isPodcastCreator, PODCAST_CONFIG } from '@/lib/podcastConfig';
 import { genUserName } from '@/lib/genUserName';
+import type { NostrEvent } from '@nostrify/nostrify';
 
 const SocialFeed = () => {
   const {
@@ -31,6 +35,11 @@ const SocialFeed = () => {
   } = useCreatorRepliesTab(20);
 
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
+  const { user } = useCurrentUser();
+  const queryClient = useQueryClient();
+
+  // Check if the current user is the podcast creator
+  const isCreator = user ? isPodcastCreator(user.pubkey) : false;
 
   // Flatten infinite query data for rendering
   const notesColumnData = postsData?.pages.flat() || [];
@@ -110,6 +119,52 @@ const SocialFeed = () => {
               Follow the latest updates and thoughts from the podcast creator
             </p>
           </div>
+
+          {/* Note Composer - Only show for the creator */}
+          {isCreator && (
+            <div className="mb-8">
+              <NoteComposer 
+                placeholder="Share your thoughts with your audience..."
+                onSuccess={(newEvent) => {
+                  // Optimistically add the new note to the top of the feed
+                  queryClient.setQueryData(['creator-posts'], (oldData: any) => {
+                    if (!oldData) return oldData;
+                    
+                    // Create the optimistic note
+                    const optimisticNote: NostrEvent = {
+                      id: newEvent?.id || `temp-${Date.now()}`,
+                      kind: 1,
+                      pubkey: user!.pubkey,
+                      created_at: Math.floor(Date.now() / 1000),
+                      content: newEvent?.content || '',
+                      tags: newEvent?.tags || [],
+                      sig: newEvent?.sig || ''
+                    };
+
+                    // Add to the first page
+                    const updatedPages = [...oldData.pages];
+                    if (updatedPages[0]) {
+                      updatedPages[0] = [optimisticNote, ...updatedPages[0]];
+                    } else {
+                      updatedPages[0] = [optimisticNote];
+                    }
+
+                    return {
+                      ...oldData,
+                      pages: updatedPages
+                    };
+                  });
+
+                  // Then refresh from network to get the confirmed version
+                  setTimeout(() => {
+                    queryClient.invalidateQueries({ 
+                      queryKey: ['creator-posts'] 
+                    });
+                  }, 1000);
+                }}
+              />
+            </div>
+          )}
 
           <Tabs defaultValue="notes" className="space-y-6">
             <TabsList className="grid w-full grid-cols-2">

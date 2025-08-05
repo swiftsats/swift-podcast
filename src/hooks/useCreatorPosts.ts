@@ -50,7 +50,7 @@ export function useCreatorPosts(limit: number = 20) {
 
       return oldestTimestamp;
     },
-    staleTime: 60000, // 1 minute
+    staleTime: 10000, // 10 seconds - more aggressive refresh for creator posts
   });
 }
 

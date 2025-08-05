@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
 import { useComments } from '@/hooks/useComments';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useToast } from '@/hooks/useToast';
 import { cn } from '@/lib/utils';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
@@ -32,6 +33,7 @@ export function EpisodeCard({
 }: EpisodeCardProps) {
   const [commentsVisible, setCommentsVisible] = useState(showComments);
   const { playEpisode } = useAudioPlayer();
+  const { toast } = useToast();
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';
 
@@ -68,6 +70,26 @@ export function EpisodeCard({
 
   // Generate nevent for episode link with relay hints (NIP-54 uses regular events)
   const episodeNevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
+
+  const handleShare = async () => {
+    try {
+      const nevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
+      const url = `${window.location.origin}/${nevent}`;
+
+      await navigator.clipboard.writeText(url);
+
+      toast({
+        title: "Link copied!",
+        description: "The episode link has been copied to your clipboard.",
+      });
+    } catch {
+      toast({
+        title: "Failed to copy link",
+        description: "Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <Card className={className}>
@@ -197,7 +219,7 @@ export function EpisodeCard({
             />
           </div>
 
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={handleShare}>
             <Share className="w-4 h-4" />
           </Button>
         </div>
