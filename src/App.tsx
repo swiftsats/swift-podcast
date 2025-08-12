@@ -14,6 +14,7 @@ import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { AppConfig } from '@/contexts/AppContext';
 import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
+import { Nip38Publisher } from '@/components/Nip38Publisher';
 import AppRouter from './AppRouter';
 
 const head = createHead({
@@ -56,6 +57,7 @@ export function App() {
                   <TooltipProvider>
                     <Toaster />
                     <Sonner />
+                    <Nip38Publisher />
                     <Suspense>
                       <AppRouter />
                     </Suspense>
