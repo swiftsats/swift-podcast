@@ -1,73 +1,7 @@
 import type { PodcastEpisode, RSSItem } from '@/types/podcast';
-import { PODCAST_CONFIG } from './podcastConfig';
+import { PODCAST_CONFIG, type PodcastConfig } from './podcastConfig';
 import { encodeEventIdAsNevent } from './nip19Utils';
 
-interface PodcastConfig {
-  creatorNpub: string;
-  podcast: {
-    title: string;
-    description: string;
-    author: string;
-    email: string;
-    image: string;
-    language: string;
-    categories: string[];
-    explicit: boolean;
-    website: string;
-    copyright: string;
-    funding: string[];
-    locked: boolean;
-    value: {
-      amount: number;
-      currency: string;
-      recipients?: Array<{
-        name: string;
-        type: 'node' | 'keysend';
-        address: string;
-        split: number;
-        customKey?: string;
-        customValue?: string;
-      }>;
-    };
-    type: 'episodic' | 'serial';
-    complete: boolean;
-    // Podcasting 2.0 fields
-    guid?: string;
-    medium?: 'podcast' | 'music' | 'video' | 'film' | 'audiobook' | 'newsletter' | 'blog';
-    publisher?: string;
-    location?: {
-      name: string;
-      geo?: string;
-      osm?: string;
-    };
-    person?: Array<{
-      name: string;
-      role: string;
-      group?: string;
-      img?: string;
-      href?: string;
-    }>;
-    license?: {
-      identifier: string;
-      url?: string;
-    };
-    txt?: Array<{
-      purpose: string;
-      content: string;
-    }>;
-    remoteItem?: Array<{
-      feedGuid: string;
-      feedUrl?: string;
-      itemGuid?: string;
-      medium?: string;
-    }>;
-    block?: {
-      id: string;
-      reason?: string;
-    };
-    newFeedUrl?: string;
-  };
-}
 
 /**
  * Converts a PodcastEpisode to an RSS item
@@ -166,7 +100,7 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
     <webMaster>${escapeXml(podcastConfig.podcast.email)} (${escapeXml(podcastConfig.podcast.author)})</webMaster>
     <pubDate>${new Date().toUTCString()}</pubDate>
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>
-    <ttl>60</ttl>
+    <ttl>${podcastConfig.rss.ttl}</ttl>
 
     <!-- iTunes/Apple Podcasts tags -->
     <itunes:title>${escapeXml(podcastConfig.podcast.title)}</itunes:title>
@@ -221,7 +155,7 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
       `<podcast:value type="${podcastConfig.podcast.value.currency}" method="lightning">
         ${podcastConfig.podcast.value.recipients && podcastConfig.podcast.value.recipients.length > 0 ?
           podcastConfig.podcast.value.recipients.map(recipient =>
-            `<podcast:valueRecipient name="${escapeXml(recipient.name)}" type="${escapeXml(recipient.type)}" address="${escapeXml(recipient.address)}" split="${recipient.split}" ${recipient.customKey ? `customKey="${escapeXml(recipient.customKey)}"` : ''} ${recipient.customValue ? `customValue="${escapeXml(recipient.customValue)}"` : ''} />`
+            `<podcast:valueRecipient name="${escapeXml(recipient.name)}" type="${escapeXml(recipient.type)}" address="${escapeXml(recipient.address)}" split="${recipient.split}"${recipient.customKey ? ` customKey="${escapeXml(recipient.customKey)}"` : ''}${recipient.customValue ? ` customValue="${escapeXml(recipient.customValue)}"` : ''}${recipient.fee ? ` fee="true"` : ''} />`
           ).join('\n        ') :
           `<podcast:valueRecipient name="${escapeXml(podcastConfig.podcast.author)}" type="node" address="${escapeXml(podcastConfig.podcast.funding?.[0] || '')}" split="100" />`
         }

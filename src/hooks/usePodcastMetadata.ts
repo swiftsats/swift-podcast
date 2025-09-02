@@ -18,6 +18,15 @@ interface PodcastMetadata {
   value: {
     amount: number;
     currency: string;
+    recipients?: Array<{
+      name: string;
+      type: 'node' | 'lightning-address';
+      address: string;
+      split: number;
+      customKey?: string;
+      customValue?: string;
+      fee?: boolean;
+    }>;
   };
   type: 'episodic' | 'serial';
   complete: boolean;
@@ -56,7 +65,7 @@ export function usePodcastMetadata() {
         console.warn('Failed to fetch podcast metadata from Nostr, using fallback:', error);
       }
 
-      // Fallback to hardcoded config
+      // Fallback to config (includes environment variables)
       return {
         title: PODCAST_CONFIG.podcast.title,
         description: PODCAST_CONFIG.podcast.description,
@@ -68,14 +77,15 @@ export function usePodcastMetadata() {
         explicit: PODCAST_CONFIG.podcast.explicit,
         website: PODCAST_CONFIG.podcast.website,
         copyright: PODCAST_CONFIG.podcast.copyright,
-        funding: [],
-        locked: false,
+        funding: PODCAST_CONFIG.podcast.funding || [],
+        locked: PODCAST_CONFIG.podcast.locked,
         value: {
-          amount: 0,
-          currency: 'USD'
+          amount: PODCAST_CONFIG.podcast.value.amount,
+          currency: PODCAST_CONFIG.podcast.value.currency,
+          recipients: PODCAST_CONFIG.podcast.value.recipients || []
         },
-        type: 'episodic',
-        complete: false,
+        type: PODCAST_CONFIG.podcast.type,
+        complete: PODCAST_CONFIG.podcast.complete,
         updated_at: 0
       };
     },

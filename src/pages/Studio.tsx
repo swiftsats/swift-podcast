@@ -63,6 +63,15 @@ interface PodcastFormData {
   value: {
     amount: number;
     currency: string;
+    recipients?: Array<{
+      name: string;
+      type: 'node' | 'lightning-address';
+      address: string;
+      split: number;
+      customKey?: string;
+      customValue?: string;
+      fee?: boolean;
+    }>;
   };
   type: 'episodic' | 'serial';
   complete: boolean;
@@ -104,6 +113,15 @@ interface ExtendedPodcastMetadata {
   value?: {
     amount: number;
     currency: string;
+    recipients?: Array<{
+      name: string;
+      type: 'node' | 'lightning-address';
+      address: string;
+      split: number;
+      customKey?: string;
+      customValue?: string;
+      fee?: boolean;
+    }>;
   };
   type?: 'episodic' | 'serial';
   complete?: boolean;
@@ -166,14 +184,15 @@ const Studio = () => {
     explicit: PODCAST_CONFIG.podcast.explicit,
     website: PODCAST_CONFIG.podcast.website,
     copyright: PODCAST_CONFIG.podcast.copyright,
-    funding: [],
-    locked: false,
+    funding: PODCAST_CONFIG.podcast.funding || [],
+    locked: PODCAST_CONFIG.podcast.locked,
     value: {
-      amount: 0,
-      currency: 'USD'
+      amount: PODCAST_CONFIG.podcast.value.amount,
+      currency: PODCAST_CONFIG.podcast.value.currency,
+      recipients: PODCAST_CONFIG.podcast.value.recipients || []
     },
-    type: 'episodic',
-    complete: false,
+    type: PODCAST_CONFIG.podcast.type,
+    complete: PODCAST_CONFIG.podcast.complete,
     // New Podcasting 2.0 defaults
     guid: PODCAST_CONFIG.podcast.guid || PODCAST_CONFIG.creatorNpub,
     medium: PODCAST_CONFIG.podcast.medium || 'podcast',
@@ -205,11 +224,15 @@ const Studio = () => {
         explicit: podcastMetadata.explicit,
         website: podcastMetadata.website,
         copyright: podcastMetadata.copyright,
-        funding: podcastMetadata.funding || [],
-        locked: podcastMetadata.locked || false,
-        value: podcastMetadata.value || { amount: 0, currency: 'USD' },
-        type: podcastMetadata.type || 'episodic',
-        complete: podcastMetadata.complete || false,
+        funding: podcastMetadata.funding || PODCAST_CONFIG.podcast.funding || [],
+        locked: podcastMetadata.locked ?? PODCAST_CONFIG.podcast.locked,
+        value: podcastMetadata.value || {
+          amount: PODCAST_CONFIG.podcast.value.amount,
+          currency: PODCAST_CONFIG.podcast.value.currency,
+          recipients: PODCAST_CONFIG.podcast.value.recipients || []
+        },
+        type: podcastMetadata.type || PODCAST_CONFIG.podcast.type,
+        complete: podcastMetadata.complete ?? PODCAST_CONFIG.podcast.complete,
         // Podcasting 2.0 fields
         guid: (podcastMetadata as ExtendedPodcastMetadata).guid || PODCAST_CONFIG.creatorNpub,
         medium: (podcastMetadata as ExtendedPodcastMetadata).medium || 'podcast',
@@ -282,6 +305,37 @@ const Studio = () => {
 
   const handleFundingRemove = (funding: string) => {
     handleInputChange('funding', formData.funding.filter(f => f !== funding));
+  };
+
+  const handleRecipientAdd = (recipient: { name: string; type: 'node' | 'lightning-address'; address: string; split: number; customKey?: string; customValue?: string; fee?: boolean }) => {
+    if (recipient.name && recipient.address) {
+      const currentRecipients = formData.value.recipients || [];
+      handleInputChange('value', {
+        ...formData.value,
+        recipients: [...currentRecipients, recipient]
+      });
+    }
+  };
+
+  const handleRecipientRemove = (index: number) => {
+    const currentRecipients = formData.value.recipients || [];
+    handleInputChange('value', {
+      ...formData.value,
+      recipients: currentRecipients.filter((_, i) => i !== index)
+    });
+  };
+
+  const handleRecipientUpdate = (index: number, field: string, value: any) => {
+    const currentRecipients = formData.value.recipients || [];
+    const updatedRecipients = [...currentRecipients];
+    updatedRecipients[index] = {
+      ...updatedRecipients[index],
+      [field]: value
+    };
+    handleInputChange('value', {
+      ...formData.value,
+      recipients: updatedRecipients
+    });
   };
 
   // Handle file uploads for profile picture
@@ -433,11 +487,15 @@ const Studio = () => {
         explicit: podcastMetadata.explicit,
         website: podcastMetadata.website,
         copyright: podcastMetadata.copyright,
-        funding: podcastMetadata.funding || [],
-        locked: podcastMetadata.locked || false,
-        value: podcastMetadata.value || { amount: 0, currency: 'USD' },
-        type: podcastMetadata.type || 'episodic',
-        complete: podcastMetadata.complete || false,
+        funding: podcastMetadata.funding || PODCAST_CONFIG.podcast.funding || [],
+        locked: podcastMetadata.locked ?? PODCAST_CONFIG.podcast.locked,
+        value: podcastMetadata.value || {
+          amount: PODCAST_CONFIG.podcast.value.amount,
+          currency: PODCAST_CONFIG.podcast.value.currency,
+          recipients: PODCAST_CONFIG.podcast.value.recipients || []
+        },
+        type: podcastMetadata.type || PODCAST_CONFIG.podcast.type,
+        complete: podcastMetadata.complete ?? PODCAST_CONFIG.podcast.complete,
         // Podcasting 2.0 fields
         guid: (podcastMetadata as ExtendedPodcastMetadata).guid || PODCAST_CONFIG.creatorNpub,
         medium: (podcastMetadata as ExtendedPodcastMetadata).medium || 'podcast',
@@ -875,7 +933,7 @@ const Studio = () => {
                           value={formData.type}
                           onChange={(e) => handleInputChange('type', e.target.value)}
                           disabled={editingSection !== 'podcast'}
-                          className="w-full p-2 border rounded-md"
+                          className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="episodic">Episodic</option>
                           <option value="serial">Serial</option>
@@ -889,7 +947,7 @@ const Studio = () => {
                           value={formData.medium}
                           onChange={(e) => handleInputChange('medium', e.target.value)}
                           disabled={editingSection !== 'podcast'}
-                          className="w-full p-2 border rounded-md"
+                          className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <option value="podcast">Podcast</option>
                           <option value="music">Music</option>
@@ -967,7 +1025,7 @@ const Studio = () => {
                               currency: e.target.value
                             })}
                             disabled={editingSection !== 'podcast'}
-                            className="p-2 border rounded-md"
+                            className="p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <option value="USD">USD</option>
                             <option value="EUR">EUR</option>
@@ -1122,6 +1180,182 @@ const Studio = () => {
                     <p className="text-sm text-muted-foreground mt-2">
                       Add funding links for listeners to support your podcast. Supports Lightning addresses and other payment methods.
                     </p>
+                  </div>
+
+                  {/* Value Recipients */}
+                  <div>
+                    <Label>Value Recipients (Podcasting 2.0)</Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Configure Lightning payment recipients for value-for-value support. Recipients will receive payments automatically when listeners send value.
+                    </p>
+
+                    {/* Existing Recipients */}
+                    <div className="space-y-3 mb-4">
+                      {(formData.value.recipients || []).map((recipient, index) => (
+                        <div key={index} className="p-4 border rounded-lg space-y-3">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium">Recipient {index + 1}</h4>
+                            {editingSection === 'podcast' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRecipientRemove(index)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <Label>Name</Label>
+                              <Input
+                                value={recipient.name}
+                                onChange={(e) => handleRecipientUpdate(index, 'name', e.target.value)}
+                                disabled={editingSection !== 'podcast'}
+                                placeholder="Recipient name"
+                              />
+                            </div>
+
+                            <div>
+                              <Label>Type</Label>
+                              <select
+                                value={recipient.type}
+                                onChange={(e) => handleRecipientUpdate(index, 'type', e.target.value)}
+                                disabled={editingSection !== 'podcast'}
+                                className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+                              >
+                                <option value="node">Lightning Node</option>
+                                <option value="lightning-address">Lightning Address</option>
+                              </select>
+                            </div>
+
+                            <div>
+                              <Label>Address</Label>
+                              <Input
+                                value={recipient.address}
+                                onChange={(e) => handleRecipientUpdate(index, 'address', e.target.value)}
+                                disabled={editingSection !== 'podcast'}
+                                placeholder="Lightning node pubkey or lightning address"
+                              />
+                            </div>
+
+                            <div>
+                              <Label>Split (%)</Label>
+                              <Input
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={recipient.split}
+                                onChange={(e) => handleRecipientUpdate(index, 'split', parseInt(e.target.value) || 0)}
+                                disabled={editingSection !== 'podcast'}
+                                placeholder="0-100"
+                              />
+                            </div>
+
+                            <div>
+                              <Label>Custom Key (Optional)</Label>
+                              <Input
+                                value={recipient.customKey || ''}
+                                onChange={(e) => handleRecipientUpdate(index, 'customKey', e.target.value)}
+                                disabled={editingSection !== 'podcast'}
+                                placeholder="Custom TLV key for Lightning payments"
+                              />
+                            </div>
+
+                            <div>
+                              <Label>Custom Value (Optional)</Label>
+                              <Input
+                                value={recipient.customValue || ''}
+                                onChange={(e) => handleRecipientUpdate(index, 'customValue', e.target.value)}
+                                disabled={editingSection !== 'podcast'}
+                                placeholder="Custom TLV value for Lightning payments"
+                              />
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={recipient.fee || false}
+                                onCheckedChange={(checked) => handleRecipientUpdate(index, 'fee', checked)}
+                                disabled={editingSection !== 'podcast'}
+                              />
+                              <Label>Fee Recipient</Label>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+
+                      {(formData.value.recipients || []).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground border-2 border-dashed rounded-lg">
+                          No value recipients configured. Add recipients to enable Lightning payments.
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Add New Recipient */}
+                    {editingSection === 'podcast' && (
+                      <div className="p-4 border-2 border-dashed rounded-lg">
+                        <h4 className="font-medium mb-3">Add New Recipient</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                          <Input
+                            id="new-recipient-name"
+                            placeholder="Recipient name"
+                          />
+                          <select
+                            id="new-recipient-type"
+                            className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
+                            defaultValue="node"
+                          >
+                            <option value="node">Lightning Node</option>
+                            <option value="lightning-address">Lightning Address</option>
+                          </select>
+                          <Input
+                            id="new-recipient-address"
+                            placeholder="Lightning node pubkey or lightning address"
+                            className="md:col-span-2"
+                          />
+                          <Input
+                            id="new-recipient-split"
+                            type="number"
+                            min="0"
+                            max="100"
+                            placeholder="Split percentage (0-100)"
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          onClick={() => {
+                            const nameInput = document.getElementById('new-recipient-name') as HTMLInputElement;
+                            const typeSelect = document.getElementById('new-recipient-type') as HTMLSelectElement;
+                            const addressInput = document.getElementById('new-recipient-address') as HTMLInputElement;
+                            const splitInput = document.getElementById('new-recipient-split') as HTMLInputElement;
+
+                            if (nameInput?.value && addressInput?.value && splitInput?.value) {
+                              handleRecipientAdd({
+                                name: nameInput.value,
+                                type: typeSelect.value as 'node' | 'lightning-address',
+                                address: addressInput.value,
+                                split: parseInt(splitInput.value) || 0
+                              });
+
+                              nameInput.value = '';
+                              addressInput.value = '';
+                              splitInput.value = '';
+                            }
+                          }}
+                        >
+                          Add Recipient
+                        </Button>
+                      </div>
+                    )}
+
+                    <div className="mt-4">
+                      <div className="text-sm text-muted-foreground space-y-1">
+                        <p><strong>Total Split:</strong> {(formData.value.recipients || []).reduce((sum, r) => sum + r.split, 0)}%</p>
+                        <p className="text-xs">Note: Total split percentage should equal 100% for proper value distribution.</p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
