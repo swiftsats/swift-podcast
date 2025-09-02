@@ -274,7 +274,120 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
 }
 
 /**
- * Fetch podcast metadata from Nostr
+ * Fetch podcast metadata from multiple Nostr relays
+ */
+async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+  console.log('📡 Fetching podcast metadata from Nostr...');
+  
+  const relayPromises = relays.map(async ({url, relay}) => {
+    try {
+      const events = await Promise.race([
+        relay.query([{
+          kinds: [PODCAST_KINDS.PODCAST_METADATA],
+          authors: [creatorPubkeyHex],
+          '#d': ['podcast-metadata'],
+          limit: 5
+        }]),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Metadata query timeout for ${url}`)), 5000)
+        )
+      ]) as any[];
+
+      if (events.length > 0) {
+        console.log(`✅ Found ${events.length} metadata events from ${url}`);
+        return events;
+      }
+      return [];
+    } catch (error) {
+      console.log(`⚠️ Failed to fetch metadata from ${url}:`, (error as Error).message);
+      return [];
+    }
+  });
+
+  // Wait for all relays to respond or timeout
+  const allResults = await Promise.allSettled(relayPromises);
+  const allEvents: any[] = [];
+  
+  allResults.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      allEvents.push(...result.value);
+    }
+  });
+
+  if (allEvents.length > 0) {
+    // Get the most recent event from all relays
+    const latestEvent = allEvents.reduce((latest, current) =>
+      current.created_at > latest.created_at ? current : latest
+    );
+
+    const updatedAt = new Date(latestEvent.created_at * 1000);
+    console.log(`✅ Found podcast metadata from Nostr (updated: ${updatedAt.toISOString()})`);
+    console.log(`🎯 Using podcast metadata from Nostr`);
+
+    const metadata = JSON.parse(latestEvent.content);
+    return metadata;
+  } else {
+    console.log('⚠️ No podcast metadata found from any relay');
+    console.log('📄 Using podcast metadata from .env file');
+    return null;
+  }
+}
+
+/**
+ * Fetch podcast episodes from multiple Nostr relays  
+ */
+async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+  console.log('📡 Fetching podcast episodes from Nostr...');
+  
+  const relayPromises = relays.map(async ({url, relay}) => {
+    try {
+      const events = await Promise.race([
+        relay.query([{
+          kinds: [PODCAST_KINDS.EPISODE],
+          authors: [creatorPubkeyHex],
+          limit: 100
+        }]),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error(`Episodes query timeout for ${url}`)), 5000)
+        )
+      ]) as any[];
+
+      const validEvents = events.filter(event => validatePodcastEpisode(event, creatorPubkeyHex));
+      
+      if (validEvents.length > 0) {
+        console.log(`✅ Found ${validEvents.length} episodes from ${url}`);
+        return validEvents;
+      }
+      return [];
+    } catch (error) {
+      console.log(`⚠️ Failed to fetch episodes from ${url}:`, (error as Error).message);
+      return [];
+    }
+  });
+
+  // Wait for all relays to respond or timeout
+  const allResults = await Promise.allSettled(relayPromises);
+  const allEvents: any[] = [];
+  
+  allResults.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      allEvents.push(...result.value);
+    }
+  });
+
+  // Deduplicate events by ID (in case same episode appears on multiple relays)
+  const uniqueEvents = Array.from(
+    new Map(allEvents.map(event => [event.id, event])).values()
+  );
+
+  console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
+  
+  // Convert to PodcastEpisode format
+  return uniqueEvents.map(event => eventToPodcastEpisode(event));
+}
+
+/**
+ * Fetch podcast metadata from single Nostr relay (legacy function)
  */
 async function fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
   try {
@@ -382,19 +495,25 @@ async function buildRSS() {
     
     console.log(`👤 Creator: ${baseConfig.creatorNpub}`);
 
-    // Connect to Nostr relay
-    const relayUrl = 'wss://relay.primal.net';
-    console.log(`🔌 Connecting to relay: ${relayUrl}`);
+    // Connect to multiple Nostr relays for better coverage
+    const relayUrls = [
+      'wss://relay.primal.net',
+      'wss://relay.nostr.band', 
+      'wss://relay.damus.io',
+      'wss://nos.lol',
+      'wss://relay.ditto.pub'
+    ];
     
-    const relay = new NRelay1(relayUrl);
+    console.log(`🔌 Connecting to ${relayUrls.length} relays for better data coverage`);
+    const relays = relayUrls.map(url => ({ url, relay: new NRelay1(url) }));
 
     let finalConfig = baseConfig;
     let episodes: PodcastEpisode[] = [];
     let nostrMetadata: any = null;
 
     try {
-      // Fetch podcast metadata from Nostr
-      nostrMetadata = await fetchPodcastMetadata(relay, creatorPubkeyHex);
+      // Fetch podcast metadata from multiple relays
+      nostrMetadata = await fetchPodcastMetadataMultiRelay(relays, creatorPubkeyHex);
       
       // Merge Nostr metadata with base config (Nostr data takes precedence)
       if (nostrMetadata) {
@@ -410,8 +529,8 @@ async function buildRSS() {
         console.log('📄 Using podcast metadata from .env file');
       }
 
-      // Fetch episodes from Nostr
-      episodes = await fetchPodcastEpisodes(relay, creatorPubkeyHex);
+      // Fetch episodes from multiple relays
+      episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
       
     } finally {
       // Close relay connection if needed
@@ -447,7 +566,7 @@ async function buildRSS() {
       dataSource: {
         metadata: nostrMetadata ? 'nostr' : 'env',
         episodes: episodes.length > 0 ? 'nostr' : 'none',
-        relay: relayUrl
+        relays: relayUrls
       },
       creator: baseConfig.creatorNpub
     };
