@@ -1,10 +1,10 @@
-# RSS Feed Cron Job Setup
+# RSS Feed Build-Time Setup
 
-This document explains how to set up a cron job to automatically generate the RSS feed from Nostr relays.
+This document explains how to set up automated RSS feed generation using the build-time RSS system.
 
 ## Overview
 
-The `scripts/generate-rss.js` script fetches podcast episodes from Nostr relays and generates a static `rss.xml` file that can be served by any web server. This solves the problem where RSS readers and podcast apps cannot execute JavaScript and therefore can't see the dynamically generated RSS feed.
+The `scripts/build-rss.ts` script fetches podcast episodes from Nostr relays and generates a static `rss.xml` file during the build process. This solves the problem where RSS readers and podcast apps cannot execute JavaScript and therefore can't see the dynamically generated RSS feed.
 
 ## Script Features
 
@@ -32,61 +32,65 @@ export NOSTR_RELAYS="wss://relay.nostr.band,wss://relay.damus.io,wss://nos.lol,w
 
 ### Podcast Configuration
 
-Edit the `PODCAST_CONFIG` object in `scripts/generate-rss.js` to customize:
+The RSS feed is automatically configured using:
 
-- Creator npub (public key)
-- Podcast metadata (title, description, author, etc.)
-- Categories and iTunes settings
-- Podcasting 2.0 tags
+- Environment variables for creator npub and metadata
+- Nostr metadata events from the creator's profile
+- Build-time fetching of episode data
 
 ## Manual Execution
 
-To run the script manually:
+To run the RSS build script manually:
 
 ```bash
 # From the project root directory
-node scripts/generate-rss.js
+npx tsx scripts/build-rss.ts
+
+# Or as part of the full build process
+npm run build
 ```
 
-## Cron Job Setup
+## Automated RSS Updates
 
-### 1. Make the script executable
+### Option 1: Build-Time Generation (Recommended)
 
-```bash
-chmod +x scripts/generate-rss.js
-```
+The RSS feed is automatically generated during the build process via `npm run build`. For deployment platforms like Vercel, Netlify, or GitHub Pages, this means the RSS feed is always up-to-date with each deployment.
 
-### 2. Test the script with full paths
+### Option 2: Periodic Rebuilds via Cron
+
+For servers where you want to update the RSS feed without full rebuilds, you can set up a cron job to run just the RSS build script.
+
+### 1. Test the script with full paths
 
 ```bash
 cd /full/path/to/your/podstr/project
-/usr/bin/node scripts/generate-rss.js
+npx tsx scripts/build-rss.ts
 ```
 
-### 3. Create a wrapper script (recommended)
+### 2. Create a wrapper script (for cron setup)
 
-Create `/usr/local/bin/generate-podstr-rss.sh`:
+Create `/usr/local/bin/update-podstr-rss.sh`:
 
 ```bash
 #!/bin/bash
 
-# Set environment variables
+# Set environment variables (should match your .env file)
 export BASE_URL="https://your-domain.com"
 export NOSTR_RELAYS="wss://relay.nostr.band,wss://relay.damus.io"
 
 # Change to project directory
 cd /full/path/to/your/podstr/project
 
-# Run the RSS generation script
-/usr/bin/node scripts/generate-rss.js >> /var/log/podstr-rss.log 2>&1
+# Run the RSS build script
+npx tsx scripts/build-rss.ts >> /var/log/podstr-rss.log 2>&1
 ```
 
 Make it executable:
 ```bash
-chmod +x /usr/local/bin/generate-podstr-rss.sh
+chmod +x /usr/local/bin/update-podstr-rss.sh
 ```
 
-### 4. Set up the cron job
+### 3. Set up the cron job
 
 Edit your crontab:
 ```bash
@@ -97,16 +101,16 @@ Add one of these entries based on your update frequency needs:
 
 ```bash
 # Every 15 minutes (for frequent updates)
-*/15 * * * * /usr/local/bin/generate-podstr-rss.sh
+*/15 * * * * /usr/local/bin/update-podstr-rss.sh
 
 # Every hour (recommended for most use cases)
-0 * * * * /usr/local/bin/generate-podstr-rss.sh
+0 * * * * /usr/local/bin/update-podstr-rss.sh
 
 # Every 6 hours (for less frequent updates)
-0 */6 * * * /usr/local/bin/generate-podstr-rss.sh
+0 */6 * * * /usr/local/bin/update-podstr-rss.sh
 
 # Daily at 2 AM
-0 2 * * * /usr/local/bin/generate-podstr-rss.sh
+0 2 * * * /usr/local/bin/update-podstr-rss.sh
 ```
 
 ## Web Server Configuration
@@ -194,7 +198,7 @@ Rotate logs with logrotate by creating `/etc/logrotate.d/podstr-rss`:
 Run the script manually to see detailed output:
 
 ```bash
-node scripts/generate-rss.js
+npx tsx scripts/build-rss.ts
 ```
 
 ### Check Cron Logs
@@ -213,13 +217,13 @@ journalctl -f -u cron
 
 Here's a complete example for a production deployment:
 
-1. **Wrapper script** (`/usr/local/bin/generate-podstr-rss.sh`):
+1. **Wrapper script** (`/usr/local/bin/update-podstr-rss.sh`):
 ```bash
 #!/bin/bash
 export BASE_URL="https://mypodcast.com"
 export NOSTR_RELAYS="wss://relay.nostr.band,wss://relay.damus.io"
 cd /var/www/podstr
-/usr/bin/node scripts/generate-rss.js >> /var/log/podstr-rss.log 2>&1
+npx tsx scripts/build-rss.ts >> /var/log/podstr-rss.log 2>&1
 
 # Optional: notify monitoring service
 if [ $? -eq 0 ]; then
@@ -232,7 +236,7 @@ fi
 2. **Crontab entry**:
 ```bash
 # Update RSS every 30 minutes
-*/30 * * * * /usr/local/bin/generate-podstr-rss.sh
+*/30 * * * * /usr/local/bin/update-podstr-rss.sh
 ```
 
 3. **Nginx config**:
@@ -244,4 +248,16 @@ location /rss.xml {
 }
 ```
 
-This setup will automatically update your RSS feed every 30 minutes with the latest episodes from Nostr relays, ensuring that RSS readers and podcast apps always have access to fresh content without requiring JavaScript execution.
+## Deployment Platform Integration
+
+For modern deployment platforms, RSS feed updates can be automated through:
+
+### Build-Time Generation (Recommended)
+- **Vercel/Netlify**: RSS is automatically generated on each deployment
+- **GitHub Pages**: Use GitHub Actions to trigger builds when new episodes are published
+- **Self-hosted**: Use the cron setup above for periodic RSS updates
+
+### Webhook-Triggered Builds
+Set up webhooks to trigger new builds when episodes are published, ensuring immediate RSS updates without waiting for scheduled builds.
+
+This approach ensures that RSS readers and podcast apps always have access to fresh content without requiring JavaScript execution.

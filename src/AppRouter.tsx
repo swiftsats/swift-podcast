@@ -8,7 +8,6 @@ import SocialFeed from "./pages/SocialFeed";
 import PublishEpisode from "./pages/PublishEpisode";
 import Studio from "./pages/Studio";
 import About from "./pages/About";
-import RSSFeed from "./pages/RSSFeed";
 import DebugAudio from "./pages/DebugAudio";
 import { NIP19Page } from "./pages/NIP19Page";
 import NotFound from "./pages/NotFound";
@@ -26,7 +25,6 @@ export function AppRouter() {
         <Route path="/publish" element={<PublishEpisode />} />
         <Route path="/studio" element={<Studio />} />
         <Route path="/about" element={<About />} />
-        <Route path="/rss.xml" element={<RSSFeed />} />
         <Route path="/debug-audio" element={<DebugAudio />} />
         {/* NIP-19 route for npub1, note1, naddr1, nevent1, nprofile1 */}
         <Route path="/:nip19" element={<NIP19Page />} />
