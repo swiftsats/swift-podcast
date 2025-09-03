@@ -20,7 +20,7 @@ config();
  * This replicates the PODCAST_CONFIG structure but uses process.env instead of import.meta.env
  */
 function createNodejsConfig() {
-  const creatorNpub = process.env.VITE_CREATOR_NPUB || "npub1km5prrxcgt5fwgjzjpltyswsuu7u7jcj2cx9hk2rwvxyk00v2jqsgv0a3h";
+  const creatorNpub = process.env.VITE_CREATOR_NPUB || "npub1dv9vvyqwurfwh2fpe30nnsn94447jflalr4drlkqjj0swkhfwpxslca89d";
 
   // Parse recipients safely
   let recipients = [];
@@ -66,7 +66,7 @@ function createNodejsConfig() {
       description: process.env.VITE_PODCAST_DESCRIPTION || "A Nostr-powered podcast exploring decentralized conversations",
       author: process.env.VITE_PODCAST_AUTHOR || "PODSTR Creator",
       email: process.env.VITE_PODCAST_EMAIL || "creator@podstr.example",
-      image: process.env.VITE_PODCAST_IMAGE || "https://example.com/podcast-artwork.jpg",
+      image: process.env.VITE_PODCAST_IMAGE || "https://image.nostr.build/59bb1cffa12d11cb7cb6905283ecc75b259733e9ecf44a6053b3805d1f01bb7a.jpg",
       language: process.env.VITE_PODCAST_LANGUAGE || "en-us",
       categories: process.env.VITE_PODCAST_CATEGORIES ?
         process.env.VITE_PODCAST_CATEGORIES.split(',').map(s => s.trim()).filter(s => s.length > 0) :
