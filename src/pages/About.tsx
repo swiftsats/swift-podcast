@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { Mail, Globe, Rss, Zap } from 'lucide-react';
+import { Mail, Globe, Rss, Zap, Hash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -96,6 +96,13 @@ const About = () => {
                           </a>
                         </Button>
                       )}
+
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={`https://njump.me/${podcastConfig.creatorNpub}`} target="_blank" rel="noopener noreferrer">
+                          <Hash className="w-4 h-4 mr-2" />
+                          Nostr
+                        </a>
+                      </Button>
                     </div>
                   </div>
                 </CardContent>
