@@ -185,8 +185,8 @@ export const PODCAST_CONFIG: PodcastConfig = {
  * Nostr event kinds used by PODSTR
  */
 export const PODCAST_KINDS = {
-  /** NIP-54: Podcast episodes */
-  EPISODE: 54,
+  /** Addressable Podcast episodes (editable, replaceable) */
+  EPISODE: 30054,
   /** NIP-22: Comments on podcast episodes */
   COMMENT: 1111,
   /** Standard text notes that may reference episodes */

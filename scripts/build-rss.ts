@@ -8,7 +8,7 @@ import type { PodcastEpisode } from '../src/types/podcast.js';
 
 // Copied from podcastConfig.ts to avoid import.meta.env issues
 const PODCAST_KINDS = {
-  EPISODE: 34235, // NIP-54: Podcast episodes
+  EPISODE: 30054, // Addressable Podcast episodes (editable, replaceable)
   PODCAST_METADATA: 30078, // Podcast metadata (addressable event)
 } as const;
 
