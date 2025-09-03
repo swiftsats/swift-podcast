@@ -43,20 +43,15 @@ export function TopHeader({ className }: TopHeaderProps) {
 
             <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <Headphones className="w-6 h-6 text-primary" />
-              <h1 className="text-lg font-bold gradient-text truncate max-w-[200px]">
+              <h1 className="text-lg font-bold gradient-text truncate">
                 {podcastConfig.podcast.title}
               </h1>
             </Link>
           </div>
 
-          {/* Desktop: Just the login area on the right */}
+          {/* Desktop: Login area on the right */}
           <div className="hidden lg:block ml-auto">
             <LoginArea className="max-w-60" />
-          </div>
-
-          {/* Mobile: Login area */}
-          <div className="lg:hidden">
-            <LoginArea className="max-w-48" />
           </div>
         </div>
       </div>

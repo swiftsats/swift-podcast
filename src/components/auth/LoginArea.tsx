@@ -29,20 +29,30 @@ export function LoginArea({ className }: LoginAreaProps) {
       {currentUser ? (
         <AccountSwitcher onAddAccountClick={() => setLoginDialogOpen(true)} />
       ) : (
-        <div className="flex gap-3 justify-center">
+        <div className={cn(
+          "flex justify-center",
+          className?.includes('w-full') ? "flex-col gap-2" : "flex-row gap-2"
+        )}>
           <Button
             onClick={() => setLoginDialogOpen(true)}
-            className='flex items-center gap-2 px-4 py-2 rounded-full bg-primary text-primary-foreground w-full font-medium transition-all hover:bg-primary/90 animate-scale-in'
+            className={cn(
+              'flex items-center gap-1.5 py-2 rounded-full bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 animate-scale-in text-sm min-w-0',
+              className?.includes('w-full') ? "px-4 justify-center w-full" : "px-3"
+            )}
           >
-            <User className='w-4 h-4' />
+            <User className='w-4 h-4 flex-shrink-0' />
             <span className='truncate'>Log in</span>
-          </Button><Button
+          </Button>
+          <Button
             onClick={() => setSignupDialogOpen(true)}
             variant="outline"
-            className="flex items-center gap-2 px-4 py-2 rounded-full font-medium transition-all"
+            className={cn(
+              "flex items-center gap-1.5 py-2 rounded-full font-medium transition-all text-sm min-w-0",
+              className?.includes('w-full') ? "px-4 justify-center w-full" : "px-3"
+            )}
           >
-            <UserPlus className="w-4 h-4" />
-            <span>Sign Up</span>
+            <UserPlus className="w-4 h-4 flex-shrink-0" />
+            <span className='truncate'>Sign Up</span>
           </Button>
         </div>
       )}

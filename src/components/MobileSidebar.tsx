@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { isPodcastCreator } from '@/lib/podcastConfig';
+import { LoginArea } from '@/components/auth/LoginArea';
 import { cn } from '@/lib/utils';
 
 interface MobileSidebarProps {
@@ -186,6 +187,14 @@ export function MobileSidebar({ onNavigate }: MobileSidebarProps) {
           </div>
         )}
       </nav>
+
+      {/* Login Area at bottom */}
+      <div className="p-4 border-t bg-muted/30">
+        <div className="flex flex-col space-y-3">
+          <h3 className="text-sm font-medium text-muted-foreground">Account</h3>
+          <LoginArea className="w-full" />
+        </div>
+      </div>
     </div>
   );
 }
