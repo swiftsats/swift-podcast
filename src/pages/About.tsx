@@ -77,59 +77,30 @@ const About = () => {
                         {podcastConfig.podcast.explicit ? "Explicit" : "Clean"}
                       </Badge>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
 
-              {/* Host Information */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>About the Host</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start space-x-4">
-                    {creator?.metadata?.picture && (
-                      <img
-                        src={creator.metadata.picture}
-                        alt={creator.metadata.name || podcastConfig.podcast.author}
-                        className="w-16 h-16 rounded-full object-cover"
-                      />
-                    )}
-
-                    <div className="flex-1">
-                      <h3 className="text-xl font-semibold mb-2">
-                        {creator?.metadata?.display_name || creator?.metadata?.name || podcastConfig.podcast.author}
-                      </h3>
-
-                      {creator?.metadata?.about && (
-                        <p className="text-muted-foreground mb-3">
-                          {creator.metadata.about}
-                        </p>
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      {creator?.metadata?.website && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={creator.metadata.website} target="_blank" rel="noopener noreferrer">
+                            <Globe className="w-4 h-4 mr-2" />
+                            Website
+                          </a>
+                        </Button>
                       )}
 
-                      <div className="flex flex-wrap gap-3">
-                        {creator?.metadata?.website && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={creator.metadata.website} target="_blank" rel="noopener noreferrer">
-                              <Globe className="w-4 h-4 mr-2" />
-                              Website
-                            </a>
-                          </Button>
-                        )}
-
-                        {podcastConfig.podcast.email && (
-                          <Button variant="outline" size="sm" asChild>
-                            <a href={`mailto:${podcastConfig.podcast.email}`}>
-                              <Mail className="w-4 h-4 mr-2" />
-                              Contact
-                            </a>
-                          </Button>
-                        )}
-                      </div>
+                      {podcastConfig.podcast.email && (
+                        <Button variant="outline" size="sm" asChild>
+                          <a href={`mailto:${podcastConfig.podcast.email}`}>
+                            <Mail className="w-4 h-4 mr-2" />
+                            Contact
+                          </a>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
             </div>
 
             {/* Sidebar */}
