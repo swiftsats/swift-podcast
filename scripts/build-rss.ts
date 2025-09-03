@@ -21,7 +21,7 @@ config();
  */
 function createNodejsConfig() {
   const creatorNpub = process.env.VITE_CREATOR_NPUB || "npub1km5prrxcgt5fwgjzjpltyswsuu7u7jcj2cx9hk2rwvxyk00v2jqsgv0a3h";
-  
+
   // Parse recipients safely
   let recipients = [];
   try {
@@ -54,7 +54,7 @@ function createNodejsConfig() {
         }
       ];
     }
-  } catch (error) {
+  } catch {
     console.warn('Failed to parse VITE_PODCAST_VALUE_RECIPIENTS, using defaults');
     recipients = [];
   }
@@ -68,13 +68,13 @@ function createNodejsConfig() {
       email: process.env.VITE_PODCAST_EMAIL || "creator@podstr.example",
       image: process.env.VITE_PODCAST_IMAGE || "https://example.com/podcast-artwork.jpg",
       language: process.env.VITE_PODCAST_LANGUAGE || "en-us",
-      categories: process.env.VITE_PODCAST_CATEGORIES ? 
+      categories: process.env.VITE_PODCAST_CATEGORIES ?
         process.env.VITE_PODCAST_CATEGORIES.split(',').map(s => s.trim()).filter(s => s.length > 0) :
         ["Technology", "Social Networking", "Society & Culture"],
       explicit: process.env.VITE_PODCAST_EXPLICIT === "true",
       website: process.env.VITE_PODCAST_WEBSITE || "https://podstr.example",
       copyright: process.env.VITE_PODCAST_COPYRIGHT || "© 2025 PODSTR Creator",
-      funding: process.env.VITE_PODCAST_FUNDING ? 
+      funding: process.env.VITE_PODCAST_FUNDING ?
         process.env.VITE_PODCAST_FUNDING.split(',').map(s => s.trim()).filter(s => s.length > 0) :
         [],
       locked: process.env.VITE_PODCAST_LOCKED === "true",
@@ -94,7 +94,7 @@ function createNodejsConfig() {
         geo: process.env.VITE_PODCAST_LOCATION_GEO || undefined,
         osm: process.env.VITE_PODCAST_LOCATION_OSM || undefined
       } : undefined,
-      person: process.env.VITE_PODCAST_PERSON ? 
+      person: process.env.VITE_PODCAST_PERSON ?
         JSON.parse(process.env.VITE_PODCAST_PERSON) :
         [{ name: process.env.VITE_PODCAST_AUTHOR || "PODSTR Creator", role: "host", group: "cast" }],
       license: {
@@ -140,11 +140,11 @@ function escapeXml(unsafe: string): string {
 /**
  * Node-compatible RSS feed generation (simplified version)
  */
-function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: any): string {
+function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<string, unknown>): string {
   const baseUrl = podcastConfig.podcast.website || 'https://podstr.example';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" 
+<rss version="2.0"
      xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd"
      xmlns:content="http://purl.org/rss/1.0/modules/content/"
      xmlns:podcast="https://github.com/Podcastindex-org/podcast-namespace/blob/main/docs/1.0.md">
@@ -179,7 +179,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: any): string
     <podcast:locked>${podcastConfig.podcast.locked ? 'yes' : 'no'}</podcast:locked>
 
     ${podcastConfig.podcast.funding && podcastConfig.podcast.funding.length > 0 ?
-      podcastConfig.podcast.funding.map(url => 
+      podcastConfig.podcast.funding.map(url =>
         `<podcast:funding url="${escapeXml(url)}">Support the show</podcast:funding>`
       ).join('\n    ') : ''
     }
@@ -217,18 +217,18 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: any): string
  */
 function validatePodcastEpisode(event: NostrEvent, creatorPubkeyHex: string): boolean {
   if (event.kind !== PODCAST_KINDS.EPISODE) return false;
-  
+
   // Check for required title tag
   const title = event.tags.find(([name]) => name === 'title')?.[1];
   if (!title) return false;
-  
+
   // Check for required audio tag
   const audio = event.tags.find(([name]) => name === 'audio')?.[1];
   if (!audio) return false;
-  
+
   // Verify it's from the podcast creator
   if (event.pubkey !== creatorPubkeyHex) return false;
-  
+
   return true;
 }
 
@@ -278,7 +278,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
  */
 async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
   console.log('📡 Fetching podcast metadata from Nostr...');
-  
+
   const relayPromises = relays.map(async ({url, relay}) => {
     try {
       const events = await Promise.race([
@@ -288,10 +288,10 @@ async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay:
           '#d': ['podcast-metadata'],
           limit: 5
         }]),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error(`Metadata query timeout for ${url}`)), 5000)
         )
-      ]) as any[];
+      ]) as NostrEvent[];
 
       if (events.length > 0) {
         console.log(`✅ Found ${events.length} metadata events from ${url}`);
@@ -306,9 +306,9 @@ async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay:
 
   // Wait for all relays to respond or timeout
   const allResults = await Promise.allSettled(relayPromises);
-  const allEvents: any[] = [];
-  
-  allResults.forEach((result, index) => {
+  const allEvents: NostrEvent[] = [];
+
+  allResults.forEach((result) => {
     if (result.status === 'fulfilled') {
       allEvents.push(...result.value);
     }
@@ -334,11 +334,11 @@ async function fetchPodcastMetadataMultiRelay(relays: Array<{url: string, relay:
 }
 
 /**
- * Fetch podcast episodes from multiple Nostr relays  
+ * Fetch podcast episodes from multiple Nostr relays
  */
 async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
   console.log('📡 Fetching podcast episodes from Nostr...');
-  
+
   const relayPromises = relays.map(async ({url, relay}) => {
     try {
       const events = await Promise.race([
@@ -347,13 +347,13 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
           authors: [creatorPubkeyHex],
           limit: 100
         }]),
-        new Promise((_, reject) => 
+        new Promise((_, reject) =>
           setTimeout(() => reject(new Error(`Episodes query timeout for ${url}`)), 5000)
         )
-      ]) as any[];
+      ]) as NostrEvent[];
 
       const validEvents = events.filter(event => validatePodcastEpisode(event, creatorPubkeyHex));
-      
+
       if (validEvents.length > 0) {
         console.log(`✅ Found ${validEvents.length} episodes from ${url}`);
         return validEvents;
@@ -367,9 +367,9 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
 
   // Wait for all relays to respond or timeout
   const allResults = await Promise.allSettled(relayPromises);
-  const allEvents: any[] = [];
-  
-  allResults.forEach((result, index) => {
+  const allEvents: NostrEvent[] = [];
+
+  allResults.forEach((result) => {
     if (result.status === 'fulfilled') {
       allEvents.push(...result.value);
     }
@@ -381,7 +381,7 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
   );
 
   console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
-  
+
   // Convert to PodcastEpisode format
   return uniqueEvents.map(event => eventToPodcastEpisode(event));
 }
@@ -389,10 +389,10 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
 /**
  * Fetch podcast metadata from single Nostr relay (legacy function)
  */
-async function fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
+async function _fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
   try {
     console.log('📡 Fetching podcast metadata from Nostr...');
-    
+
     // Add timeout to prevent hanging
     const events = await Promise.race([
       relay.query([{
@@ -401,10 +401,10 @@ async function fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
         '#d': ['podcast-metadata'],
         limit: 5
       }]),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Metadata query timeout')), 5000)
       )
-    ]) as any[];
+    ]) as NostrEvent[];
 
     if (events.length > 0) {
       // Get the most recent event
@@ -419,17 +419,17 @@ async function fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
   } catch (error) {
     console.warn('⚠️  Failed to fetch podcast metadata from Nostr:', error);
   }
-  
+
   return null;
 }
 
 /**
  * Fetch podcast episodes from Nostr
  */
-async function fetchPodcastEpisodes(relay: NRelay1, creatorPubkeyHex: string): Promise<PodcastEpisode[]> {
+async function _fetchPodcastEpisodes(relay: NRelay1, creatorPubkeyHex: string): Promise<PodcastEpisode[]> {
   try {
     console.log('📡 Fetching podcast episodes from Nostr...');
-    
+
     // Add timeout to prevent hanging
     const events = await Promise.race([
       relay.query([{
@@ -437,14 +437,14 @@ async function fetchPodcastEpisodes(relay: NRelay1, creatorPubkeyHex: string): P
         authors: [creatorPubkeyHex],
         limit: 100
       }]),
-      new Promise((_, reject) => 
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Episodes query timeout')), 5000)
       )
-    ]) as any[];
+    ]) as NostrEvent[];
 
     // Filter and validate events
     const validEvents = events.filter(event => validatePodcastEpisode(event, creatorPubkeyHex));
-    
+
     // Deduplicate episodes by title - keep only the latest version
     const episodesByTitle = new Map<string, NostrEvent>();
     const originalEvents = new Set<string>();
@@ -478,7 +478,7 @@ async function fetchPodcastEpisodes(relay: NRelay1, creatorPubkeyHex: string): P
 
     console.log(`✅ Found ${episodes.length} episodes from Nostr`);
     return episodes;
-    
+
   } catch (error) {
     console.warn('⚠️  Failed to fetch episodes from Nostr:', error);
     return [];
@@ -492,29 +492,29 @@ async function buildRSS() {
     // Get base config from environment variables
     const baseConfig = createNodejsConfig();
     const creatorPubkeyHex = getCreatorPubkeyHex(baseConfig.creatorNpub);
-    
+
     console.log(`👤 Creator: ${baseConfig.creatorNpub}`);
 
     // Connect to multiple Nostr relays for better coverage
     const relayUrls = [
       'wss://relay.primal.net',
-      'wss://relay.nostr.band', 
+      'wss://relay.nostr.band',
       'wss://relay.damus.io',
       'wss://nos.lol',
       'wss://relay.ditto.pub'
     ];
-    
+
     console.log(`🔌 Connecting to ${relayUrls.length} relays for better data coverage`);
     const relays = relayUrls.map(url => ({ url, relay: new NRelay1(url) }));
 
     let finalConfig = baseConfig;
     let episodes: PodcastEpisode[] = [];
-    let nostrMetadata: any = null;
+    let nostrMetadata: Record<string, unknown> | null = null;
 
     try {
       // Fetch podcast metadata from multiple relays
       nostrMetadata = await fetchPodcastMetadataMultiRelay(relays, creatorPubkeyHex);
-      
+
       // Merge Nostr metadata with base config (Nostr data takes precedence)
       if (nostrMetadata) {
         finalConfig = {
@@ -531,7 +531,7 @@ async function buildRSS() {
 
       // Fetch episodes from multiple relays
       episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
-      
+
     } finally {
       // Close relay connection if needed
       console.log('🔌 Relay queries completed');

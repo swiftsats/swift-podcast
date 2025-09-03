@@ -13,7 +13,7 @@ import { NostrLoginProvider } from '@nostrify/react/login';
 import { AppProvider } from '@/components/AppProvider';
 import { NWCProvider } from '@/contexts/NWCContext';
 import { AppConfig } from '@/contexts/AppContext';
-import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
+import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext.tsx';
 import { Nip38Publisher } from '@/components/Nip38Publisher';
 import AppRouter from './AppRouter';
 
