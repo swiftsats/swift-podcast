@@ -5,7 +5,7 @@ import { Headphones, Rss, Zap, Users, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { EpisodeList } from '@/components/podcast/EpisodeList';
 import { ZapLeaderboard } from '@/components/podcast/ZapLeaderboard';
 import { RecentActivity } from '@/components/podcast/RecentActivity';
@@ -38,10 +38,8 @@ const Index = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-3 space-y-8">
@@ -317,8 +315,8 @@ const Index = () => {
             </Card>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

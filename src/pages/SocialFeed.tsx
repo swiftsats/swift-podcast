@@ -3,7 +3,7 @@ import { MessageSquare, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { PostCard } from '@/components/social/PostCard';
 import { ConversationThread } from '@/components/social/ConversationThread';
 import { NoteComposer } from '@/components/social/NoteComposer';
@@ -108,10 +108,8 @@ const SocialFeed = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">{creatorName}'s Social Feed</h1>
@@ -263,8 +261,8 @@ const SocialFeed = () => {
             </CardContent>
           </Card>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

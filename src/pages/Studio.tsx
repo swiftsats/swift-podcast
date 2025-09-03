@@ -23,7 +23,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
@@ -325,7 +325,7 @@ const Studio = () => {
     });
   };
 
-  const handleRecipientUpdate = (index: number, field: string, value: any) => {
+  const handleRecipientUpdate = (index: number, field: string, value: string | number | boolean) => {
     const currentRecipients = formData.value.recipients || [];
     const updatedRecipients = [...currentRecipients];
     updatedRecipients[index] = {
@@ -520,9 +520,8 @@ const Studio = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
               <h2 className="text-xl font-semibold mb-4">Login Required</h2>
@@ -534,16 +533,15 @@ const Studio = () => {
               </Button>
             </CardContent>
           </Card>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   if (!isCreator) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <Card className="max-w-md mx-auto">
             <CardContent className="p-6 text-center">
               <h2 className="text-xl font-semibold mb-4">Access Denied</h2>
@@ -555,16 +553,14 @@ const Studio = () => {
               </Button>
             </CardContent>
           </Card>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -1420,8 +1416,8 @@ const Studio = () => {
             </TabsContent>
           </Tabs>
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

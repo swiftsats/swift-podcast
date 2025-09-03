@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { EpisodeList } from '@/components/podcast/EpisodeList';
 import { PODCAST_CONFIG } from '@/lib/podcastConfig';
 
@@ -10,10 +10,8 @@ const Episodes = () => {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">All Episodes</h1>
@@ -24,8 +22,8 @@ const Episodes = () => {
 
           <EpisodeList showSearch _showPlayer _autoPlay />
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 

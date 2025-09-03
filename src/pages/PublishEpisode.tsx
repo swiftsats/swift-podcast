@@ -2,7 +2,7 @@ import { useSeoMeta } from '@unhead/react';
 import { useNavigate, Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { PublishEpisodeForm } from '@/components/podcast/PublishEpisodeForm';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { isPodcastCreator } from '@/lib/podcastConfig';
@@ -27,9 +27,8 @@ const PublishEpisode = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">Authentication Required</h1>
             <p className="text-muted-foreground mb-6">
@@ -42,16 +41,15 @@ const PublishEpisode = () => {
               </Link>
             </Button>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   if (!isCreator) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="max-w-md mx-auto text-center">
             <h1 className="text-2xl font-bold mb-4">Access Denied</h1>
             <p className="text-muted-foreground mb-6">
@@ -64,15 +62,14 @@ const PublishEpisode = () => {
               </Link>
             </Button>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold mb-2">Publish New Episode</h1>
@@ -86,8 +83,8 @@ const PublishEpisode = () => {
             onCancel={handleCancel}
           />
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 };
 
