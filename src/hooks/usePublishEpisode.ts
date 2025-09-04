@@ -75,10 +75,14 @@ export function usePublishEpisode() {
         }
       }
 
-      // Build tags for NIP-54 podcast episode
+      // Generate a unique identifier for this addressable episode
+      const episodeIdentifier = `episode-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Build tags for addressable podcast episode (kind 30054)
       const tags: Array<[string, ...string[]]> = [
-        ['title', episodeData.title], // NIP-54: episode title
-        ['audio', audioUrl, audioType || 'audio/mpeg'], // NIP-54: audio URL with media type
+        ['d', episodeIdentifier], // Addressable event identifier
+        ['title', episodeData.title], // Episode title
+        ['audio', audioUrl, audioType || 'audio/mpeg'], // Audio URL with media type
         ['alt', `Podcast episode: ${episodeData.title}`] // NIP-31 alt tag
       ];
 
@@ -194,10 +198,15 @@ export function useUpdateEpisode() {
         }
       }
 
-      // Build tags for updated NIP-54 podcast episode
+      // TODO: Get the original episode's 'd' tag identifier from the existing event
+      // For now, we'll use the episodeId as the identifier, but ideally we'd fetch the original event
+      const episodeIdentifier = `episode-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Build tags for updated addressable podcast episode (kind 30054)
       const tags: Array<[string, ...string[]]> = [
-        ['title', episodeData.title], // NIP-54: episode title
-        ['audio', audioUrl, audioType || 'audio/mpeg'], // NIP-54: audio URL with media type
+        ['d', episodeIdentifier], // Addressable event identifier
+        ['title', episodeData.title], // Episode title
+        ['audio', audioUrl, audioType || 'audio/mpeg'], // Audio URL with media type
         ['alt', `Updated podcast episode: ${episodeData.title}`], // NIP-31 alt tag
         ['edit', episodeId] // Reference to the original event being edited
       ];

@@ -59,6 +59,9 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     .filter(([name]) => name === 't')
     .map(([, value]) => value);
 
+  // Extract identifier from 'd' tag (for addressable events)
+  const identifier = tags.get('d')?.[0] || event.id; // Fallback to event ID for backward compatibility
+
   return {
     id: event.id,
     title,
@@ -76,6 +79,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     externalRefs: [],
     eventId: event.id,
     authorPubkey: event.pubkey,
+    identifier,
     createdAt: new Date(event.created_at * 1000),
   };
 }

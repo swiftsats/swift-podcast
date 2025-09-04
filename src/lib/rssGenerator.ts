@@ -1,6 +1,6 @@
 import type { PodcastEpisode, RSSItem } from '@/types/podcast';
 import { PODCAST_CONFIG, type PodcastConfig } from './podcastConfig';
-import { encodeEventIdAsNevent } from './nip19Utils';
+import { encodeEpisodeAsNaddr } from './nip19Utils';
 
 
 /**
@@ -20,7 +20,7 @@ function episodeToRSSItem(episode: PodcastEpisode, config?: PodcastConfig): RSSI
   return {
     title: episode.title,
     description: episode.description || '',
-    link: `${getBaseUrl()}/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`, // Use nevent links for better discoverability
+    link: `${getBaseUrl()}/${encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier)}`, // Use naddr links for addressable episodes
     guid: episode.id,
     pubDate: episode.publishDate.toUTCString(),
     author: `${podcastConfig.podcast.email} (${podcastConfig.podcast.author})`,

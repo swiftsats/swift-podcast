@@ -6,6 +6,9 @@ import { NRelay1, NostrEvent } from '@nostrify/nostrify';
 // import { generateRSSFeed } from '../src/lib/rssGenerator.js'; // Can't import due to import.meta.env issues
 import type { PodcastEpisode } from '../src/types/podcast.js';
 
+// Import naddr encoding function
+import { encodeEpisodeAsNaddr } from '../src/lib/nip19Utils.js';
+
 // Copied from podcastConfig.ts to avoid import.meta.env issues
 const PODCAST_KINDS = {
   EPISODE: 30054, // Addressable Podcast episodes (editable, replaceable)
@@ -199,7 +202,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<strin
     <item>
       <title>${escapeXml(episode.title)}</title>
       <description>${escapeXml(episode.description || '')}</description>
-      <link>${escapeXml(baseUrl)}/episodes/${episode.id}</link>
+      <link>${escapeXml(baseUrl)}/${encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier)}</link>
       <pubDate>${episode.publishDate.toUTCString()}</pubDate>
       <guid>${episode.id}</guid>
       <enclosure url="${escapeXml(episode.audioUrl)}" type="${episode.audioType}" length="0" />
@@ -252,6 +255,9 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     .filter(([name]) => name === 't')
     .map(([, value]) => value);
 
+  // Extract identifier from 'd' tag (for addressable events)
+  const identifier = tags.get('d')?.[0] || event.id; // Fallback to event ID for backward compatibility
+
   return {
     id: event.id,
     title,
@@ -269,6 +275,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     externalRefs: [],
     eventId: event.id,
     authorPubkey: event.pubkey,
+    identifier,
     createdAt: new Date(event.created_at * 1000),
   };
 }

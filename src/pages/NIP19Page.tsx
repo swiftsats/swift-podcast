@@ -46,13 +46,17 @@ export function NIP19Page() {
     }
 
     case 'naddr': {
-      // Handle addressable events (podcast episodes are kind 30023)
+      // Handle addressable events (podcast episodes are kind 30054)
       const naddr = decoded.data;
-      if (naddr.kind === 30023) {
-        // This is a podcast episode
+      if (naddr.kind === 30054) {
+        // This is a podcast episode - pass the addressable event parameters
         return (
           <EpisodePage
-            eventId={naddr.identifier} // Use identifier as eventId for compatibility
+            addressableEvent={{
+              pubkey: naddr.pubkey,
+              kind: naddr.kind,
+              identifier: naddr.identifier
+            }}
           />
         );
       }

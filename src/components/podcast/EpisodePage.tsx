@@ -16,11 +16,18 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
-interface EpisodePageProps {
-  eventId?: string; // For note1/nevent1
+interface AddressableEventParams {
+  pubkey: string;
+  kind: number;
+  identifier: string;
 }
 
-export function EpisodePage({ eventId }: EpisodePageProps) {
+interface EpisodePageProps {
+  eventId?: string; // For note1/nevent1
+  addressableEvent?: AddressableEventParams; // For naddr1
+}
+
+export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
   const { nostr } = useNostr();
   const navigate = useNavigate();
   const { playEpisode } = useAudioPlayer();
@@ -28,23 +35,50 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
 
   // Query for the episode event
   const { data: episodeEvent, isLoading } = useQuery<NostrEvent | null>({
-    queryKey: ['episode', eventId],
+    queryKey: ['episode', eventId || `${addressableEvent?.pubkey}:${addressableEvent?.kind}:${addressableEvent?.identifier}`],
     queryFn: async (c) => {
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(5000)]);
 
-      if (!eventId) {
+      if (eventId) {
+        // Query by event ID (for note1/nevent1)
+        const events = await nostr.query([{
+          ids: [eventId],
+          limit: 1
+        }], { signal });
+        return events[0] || null;
+      } else if (addressableEvent) {
+        // Query by addressable event coordinates (for naddr1)
+        const events = await nostr.query([{
+          kinds: [addressableEvent.kind],
+          authors: [addressableEvent.pubkey],
+          '#d': [addressableEvent.identifier],
+          limit: 1
+        }], { signal });
+        
+        // If we found the addressable event, return it
+        if (events.length > 0) {
+          return events[0];
+        }
+        
+        // Fallback: For legacy episodes that don't have 'd' tags,
+        // try to find by event ID if the identifier looks like an event ID (64 hex chars)
+        if (/^[0-9a-f]{64}$/.test(addressableEvent.identifier)) {
+          const legacyEvents = await nostr.query([{
+            ids: [addressableEvent.identifier],
+            kinds: [addressableEvent.kind],
+            authors: [addressableEvent.pubkey],
+            limit: 1
+          }], { signal });
+          return legacyEvents[0] || null;
+        }
+        
         return null;
       }
 
-      const events = await nostr.query([{
-        ids: [eventId],
-        limit: 1
-      }], { signal });
-
-      return events[0] || null;
+      return null;
     },
     staleTime: 60000, // 1 minute
-    enabled: !!eventId
+    enabled: !!(eventId || addressableEvent)
   });
 
   // Convert NostrEvent to PodcastEpisode format (NIP-54)
@@ -65,6 +99,9 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
       .filter(([name]) => name === 't')
       .map(([, value]) => value);
 
+    // Extract identifier from 'd' tag (for addressable events)
+    const identifier = tags.get('d')?.[0] || episodeEvent.id; // Fallback to event ID for backward compatibility
+
     return {
       id: episodeEvent.id,
       eventId: episodeEvent.id,
@@ -72,6 +109,7 @@ export function EpisodePage({ eventId }: EpisodePageProps) {
       description,
       content: episodeEvent.content,
       authorPubkey: episodeEvent.pubkey,
+      identifier,
       audioUrl,
       audioType,
       imageUrl,

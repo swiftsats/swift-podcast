@@ -48,6 +48,73 @@ export function encodeEventIdAsNevent(
 }
 
 /**
+ * Encode a Nostr addressable event as naddr with relay hints
+ * @param event The addressable Nostr event to encode (kind 30000-39999)
+ * @param customRelays Optional custom relays to include
+ * @returns naddr string
+ */
+export function encodeNaddr(event: NostrEvent, customRelays?: string[]): string {
+  const relays = customRelays || DEFAULT_RELAYS;
+  
+  // Find the 'd' tag for the identifier
+  const dTag = event.tags.find(([name]) => name === 'd');
+  const identifier = dTag?.[1] || '';
+  
+  return nip19.naddrEncode({
+    identifier,
+    pubkey: event.pubkey,
+    kind: event.kind,
+    relays
+  });
+}
+
+/**
+ * Encode addressable event parameters as naddr with relay hints
+ * @param pubkey The author's pubkey
+ * @param kind The event kind (30000-39999)
+ * @param identifier The 'd' tag identifier
+ * @param customRelays Optional custom relays to include
+ * @returns naddr string
+ */
+export function encodeAddressableEvent(
+  pubkey: string,
+  kind: number,
+  identifier: string,
+  customRelays?: string[]
+): string {
+  const relays = customRelays || DEFAULT_RELAYS;
+  
+  return nip19.naddrEncode({
+    identifier,
+    pubkey,
+    kind,
+    relays
+  });
+}
+
+/**
+ * Encode a podcast episode as naddr (for addressable episode events)
+ * @param pubkey The episode author's pubkey
+ * @param identifier The episode 'd' tag identifier
+ * @param customRelays Optional custom relays to include
+ * @returns naddr string for the episode
+ */
+export function encodeEpisodeAsNaddr(
+  pubkey: string,
+  identifier: string,
+  customRelays?: string[]
+): string {
+  const relays = customRelays || DEFAULT_RELAYS;
+  
+  return nip19.naddrEncode({
+    identifier,
+    pubkey,
+    kind: 30054, // PODCAST_KINDS.EPISODE
+    relays
+  });
+}
+
+/**
  * Get the default relays used for nevent encoding
  * @returns Array of default relay URLs
  */

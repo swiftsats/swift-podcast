@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/useToast';
 import { useNostr } from '@nostrify/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useComments } from '@/hooks/useComments';
-import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
+import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
 import type { NostrEvent } from '@nostrify/nostrify';
 import type { PodcastEpisode } from '@/types/podcast';
 import { cn } from '@/lib/utils';
@@ -34,10 +34,11 @@ interface EpisodeActionsProps {
 function createEventFromEpisode(episode: PodcastEpisode): NostrEvent {
   return {
     id: episode.eventId,
-    kind: 54, // NIP-54 podcast episode
+    kind: 30054, // Addressable podcast episode
     pubkey: episode.authorPubkey,
     created_at: Math.floor(episode.createdAt.getTime() / 1000),
     tags: [
+      ['d', episode.identifier], // Addressable event identifier
       ['title', episode.title],
       ['t', 'podcast'],
     ],
@@ -186,8 +187,8 @@ export function EpisodeActions({ episode, className, showComments, onToggleComme
 
   const handleShare = async () => {
     try {
-      const nevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
-      const url = `${window.location.origin}/${nevent}`;
+      const naddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
+      const url = `${window.location.origin}/${naddr}`;
 
       await navigator.clipboard.writeText(url);
 

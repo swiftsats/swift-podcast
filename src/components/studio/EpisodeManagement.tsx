@@ -17,7 +17,7 @@ import {
   Plus
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
+import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -323,7 +323,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                                 Edit Episode
                               </DropdownMenuItem>
                               <DropdownMenuItem asChild>
-                                <Link to={`/${encodeEventIdAsNevent(episode.eventId, episode.authorPubkey)}`}>
+                                <Link to={`/${encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier)}`}>
                                   <Eye className="w-4 h-4 mr-2" />
                                   View Public Page
                                 </Link>

@@ -19,6 +19,7 @@ export default function DebugAudio() {
     tags: ['test'],
     eventId: 'test-event',
     authorPubkey: 'test-pubkey',
+    identifier: 'test-episode-identifier',
     createdAt: new Date(),
     episodeNumber: 1,
     seasonNumber: undefined

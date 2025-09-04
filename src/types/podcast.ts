@@ -25,6 +25,7 @@ export interface PodcastEpisode {
   // Nostr-specific fields
   eventId: string;
   authorPubkey: string;
+  identifier: string; // 'd' tag identifier for addressable events
   createdAt: Date;
   zapCount?: number;
   totalSats?: number;

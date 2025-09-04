@@ -8,7 +8,7 @@ import { NoteContent } from '@/components/NoteContent';
 import { ZapButton } from '@/components/ZapButton';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 import { Link } from 'react-router-dom';
-import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
+import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
 import { useComments } from '@/hooks/useComments';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { useToast } from '@/hooks/useToast';
@@ -52,8 +52,9 @@ export function EpisodeCard({
     id: episode.eventId,
     pubkey: episode.authorPubkey,
     created_at: Math.floor(episode.createdAt.getTime() / 1000),
-    kind: 54, // NIP-54 podcast episodes
+    kind: 30054, // Addressable podcast episodes
     tags: [
+      ['d', episode.identifier], // Addressable event identifier
       ['title', episode.title],
       ['audio', episode.audioUrl, episode.audioType || 'audio/mpeg'],
       ...(episode.description ? [['description', episode.description]] : []),
@@ -68,13 +69,13 @@ export function EpisodeCard({
   const { data: commentsData } = useComments(episodeEvent);
   const commentCount = commentsData?.topLevelComments?.length || episode.commentCount || 0;
 
-  // Generate nevent for episode link with relay hints (NIP-54 uses regular events)
-  const episodeNevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
+  // Generate naddr for episode link with relay hints (episodes are addressable events)
+  const episodeNaddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
 
   const handleShare = async () => {
     try {
-      const nevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
-      const url = `${window.location.origin}/${nevent}`;
+      const naddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
+      const url = `${window.location.origin}/${naddr}`;
 
       await navigator.clipboard.writeText(url);
 
@@ -138,7 +139,7 @@ export function EpisodeCard({
             </div>
 
             <Link
-              to={`/${episodeNevent}`}
+              to={`/${episodeNaddr}`}
               className="block group"
             >
               <h3 className="font-semibold text-lg mb-2 line-clamp-2 group-hover:text-primary transition-colors cursor-pointer">
