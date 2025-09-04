@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { useSeoMeta } from '@unhead/react';
 import { Clock, Calendar, ArrowLeft, Headphones } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +14,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import type { PodcastEpisode } from '@/types/podcast';
 import type { NostrEvent } from '@nostrify/nostrify';
 
@@ -31,6 +33,7 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
   const { nostr } = useNostr();
   const navigate = useNavigate();
   const { playEpisode } = useAudioPlayer();
+  const podcastConfig = usePodcastConfig();
   const [showComments, setShowComments] = useState(true);
 
   // Query for the episode event
@@ -81,8 +84,10 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
     enabled: !!(eventId || addressableEvent)
   });
 
-  // Convert NostrEvent to PodcastEpisode format (NIP-54)
-  const episode: PodcastEpisode | null = episodeEvent ? (() => {
+  // Convert NostrEvent to PodcastEpisode format (NIP-54) - memoized to prevent unnecessary re-renders
+  const episode: PodcastEpisode | null = useMemo(() => {
+    if (!episodeEvent) return null;
+
     const tags = new Map(episodeEvent.tags.map(([key, ...values]) => [key, values]));
 
     const title = tags.get('title')?.[0] || 'Untitled Episode';
@@ -124,7 +129,14 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
       commentCount: 0,
       repostCount: 0
     };
-  })() : null;
+  }, [episodeEvent]);
+
+  // Update document title when episode loads
+  useSeoMeta({
+    title: episode 
+      ? `${episode.title} | ${podcastConfig.podcast.title}`
+      : `Episode | ${podcastConfig.podcast.title}`,
+  });
 
   const formatDuration = (seconds?: number): string => {
     if (!seconds) return '';

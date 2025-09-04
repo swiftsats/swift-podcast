@@ -17,7 +17,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
-import { encodeEventIdAsNevent } from '@/lib/nip19Utils';
+import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
 import { EpisodeActions } from '@/components/podcast/EpisodeActions';
 import { CommentsSection } from '@/components/comments/CommentsSection';
 
@@ -45,15 +45,16 @@ export function PersistentAudioPlayer() {
   }
 
   const episode = state.currentEpisode;
-  const episodeNevent = encodeEventIdAsNevent(episode.eventId, episode.authorPubkey);
+  const episodeNaddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
 
   // Create NostrEvent for social features
   const episodeEvent: NostrEvent = {
     id: episode.eventId,
     pubkey: episode.authorPubkey,
     created_at: Math.floor(episode.createdAt.getTime() / 1000),
-    kind: 54, // NIP-54 podcast episodes
+    kind: 30054, // Addressable podcast episode
     tags: [
+      ['d', episode.identifier], // Addressable event identifier
       ['title', episode.title],
       ['audio', episode.audioUrl, episode.audioType || 'audio/mpeg'],
       ...(episode.description ? [['description', episode.description]] : []),
@@ -136,7 +137,7 @@ export function PersistentAudioPlayer() {
             )}
             <div className="min-w-0 flex-1">
               <Link
-                to={`/${episodeNevent}`}
+                to={`/${episodeNaddr}`}
                 className="font-medium text-xs sm:text-sm hover:text-primary transition-colors line-clamp-1"
               >
                 {episode.title}
@@ -299,7 +300,7 @@ export function PersistentAudioPlayer() {
                       )}
                       <div className="min-w-0 flex-1">
                         <Link
-                          to={`/${episodeNevent}`}
+                          to={`/${episodeNaddr}`}
                           className="font-medium hover:text-primary transition-colors block"
                         >
                           {episode.title}
@@ -399,7 +400,7 @@ export function PersistentAudioPlayer() {
                       Playing from {window.location.hostname}
                     </div>
                     <Link
-                      to={`/${episodeNevent}`}
+                      to={`/${episodeNaddr}`}
                       className="text-sm text-primary hover:underline"
                     >
                       View Episode Page
