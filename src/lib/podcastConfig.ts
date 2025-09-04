@@ -50,7 +50,7 @@ export interface PodcastConfig {
       currency: string;
       recipients?: Array<{
         name: string;
-        type: 'node' | 'lightning-address';
+        type: 'node' | 'lnaddress';
         address: string;
         split: number;
         customKey?: string;
@@ -133,7 +133,7 @@ export const PODCAST_CONFIG: PodcastConfig = {
         },
         {
           name: "Producer",
-          type: "lightning-address" as const, 
+          type: "lnaddress" as const, 
           address: "producer@getalby.com",
           split: 15,
           customKey: "podcast",

@@ -193,7 +193,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<strin
           podcastConfig.podcast.value.recipients.map(recipient =>
             `<podcast:valueRecipient name="${escapeXml(recipient.name)}" type="${escapeXml(recipient.type)}" address="${escapeXml(recipient.address)}" split="${recipient.split}"${recipient.customKey ? ` customKey="${escapeXml(recipient.customKey)}"` : ''}${recipient.customValue ? ` customValue="${escapeXml(recipient.customValue)}"` : ''}${recipient.fee ? ` fee="true"` : ''} />`
           ).join('\n        ') :
-          `<podcast:valueRecipient name="${escapeXml(podcastConfig.podcast.author)}" type="lightning-address" address="${escapeXml(podcastConfig.podcast.funding?.[0] || '')}" split="100" />`
+          `<podcast:valueRecipient name="${escapeXml(podcastConfig.podcast.author)}" type="lnaddress" address="${escapeXml(podcastConfig.podcast.funding?.[0] || '')}" split="100" />`
         }
       </podcast:value>` : ''
     }
