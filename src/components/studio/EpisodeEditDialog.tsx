@@ -231,14 +231,14 @@ export function EpisodeEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
+      <DialogContent className="max-w-4xl max-h-[95vh] w-[95vw] sm:w-full sm:max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Edit Episode</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">Edit Episode</DialogTitle>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[calc(90vh-8rem)] pr-6">
+        <ScrollArea className="max-h-[calc(95vh-8rem)] sm:max-h-[calc(90vh-8rem)] pr-2 sm:pr-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 sm:space-y-6">
               {/* Title */}
               <FormField
                 control={form.control}
@@ -296,7 +296,7 @@ export function EpisodeEditDialog({
               <div className="space-y-4">
                 <Label>Audio File</Label>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-sm text-muted-foreground">Replace Audio File</Label>
                     <div className="mt-1">
@@ -308,7 +308,7 @@ export function EpisodeEditDialog({
                         id="audio-upload-edit"
                       />
                       <label htmlFor="audio-upload-edit">
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-gray-400 transition-colors">
                           <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                           <p className="text-sm text-gray-500">
                             {audioFile ? (
@@ -349,8 +349,9 @@ export function EpisodeEditDialog({
 
                 {/* Current audio info */}
                 {!audioFile && episode.audioUrl && (
-                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 rounded">
-                    <strong>Current:</strong> {episode.audioUrl}
+                  <div className="text-xs text-muted-foreground bg-muted/50 p-2 sm:p-3 rounded">
+                    <strong>Current:</strong> 
+                    <span className="break-all ml-1">{episode.audioUrl}</span>
                   </div>
                 )}
               </div>
@@ -359,7 +360,7 @@ export function EpisodeEditDialog({
               <div className="space-y-4">
                 <Label>Episode Artwork</Label>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
                   <div>
                     <Label className="text-sm text-muted-foreground">Replace Image</Label>
                     <div className="mt-1">
@@ -371,7 +372,7 @@ export function EpisodeEditDialog({
                         id="image-upload-edit"
                       />
                       <label htmlFor="image-upload-edit">
-                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400">
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 text-center cursor-pointer hover:border-gray-400 transition-colors">
                           <Upload className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                           <p className="text-sm text-gray-500">
                             {imageFile ? (
@@ -412,13 +413,13 @@ export function EpisodeEditDialog({
 
                 {/* Current image preview */}
                 {!imageFile && episode.imageUrl && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3 bg-muted/20 p-2 sm:p-3 rounded">
                     <img
                       src={episode.imageUrl}
                       alt="Current artwork"
-                      className="w-16 h-16 rounded object-cover"
+                      className="w-12 h-12 sm:w-16 sm:h-16 rounded object-cover flex-shrink-0"
                     />
-                    <div className="text-xs text-muted-foreground">
+                    <div className="text-xs text-muted-foreground min-w-0">
                       <strong>Current artwork</strong>
                     </div>
                   </div>
@@ -426,7 +427,7 @@ export function EpisodeEditDialog({
               </div>
 
               {/* Episode Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                 <FormField
                   control={form.control}
                   name="episodeNumber"
@@ -488,7 +489,7 @@ export function EpisodeEditDialog({
               {/* Tags */}
               <div className="space-y-3">
                 <Label>Tags</Label>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
                   <Input
                     value={currentTag}
                     onChange={(e) => setCurrentTag(e.target.value)}
@@ -496,7 +497,7 @@ export function EpisodeEditDialog({
                     placeholder="Add a tag..."
                     className="flex-1"
                   />
-                  <Button type="button" onClick={addTag} variant="outline">
+                  <Button type="button" onClick={addTag} variant="outline" className="w-full sm:w-auto">
                     Add
                   </Button>
                 </div>
@@ -542,16 +543,17 @@ export function EpisodeEditDialog({
               />
 
               {/* Form Actions */}
-              <div className="flex justify-end space-x-3 pt-6 border-t">
+              <div className="flex flex-col-reverse sm:flex-row justify-end space-y-reverse space-y-2 sm:space-y-0 sm:space-x-3 pt-4 sm:pt-6 border-t">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
                   disabled={isPending}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} className="w-full sm:w-auto">
                   {isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />

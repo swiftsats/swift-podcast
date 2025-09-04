@@ -176,10 +176,11 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                 </Badge>
               )}
             </CardTitle>
-            <Button asChild>
+            <Button asChild size="sm" className="text-sm">
               <Link to="/publish">
                 <Plus className="w-4 h-4 mr-2" />
-                New Episode
+                <span className="hidden sm:inline">New Episode</span>
+                <span className="sm:hidden">New</span>
               </Link>
             </Button>
           </div>
@@ -246,10 +247,11 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                   : 'Start by publishing your first episode'
                 }
               </p>
-              <Button asChild>
+              <Button asChild size="sm" className="text-sm">
                 <Link to="/publish">
                   <Plus className="w-4 h-4 mr-2" />
-                  Publish First Episode
+                  <span className="hidden sm:inline">Publish First Episode</span>
+                  <span className="sm:hidden">Publish Episode</span>
                 </Link>
               </Button>
             </div>
