@@ -135,9 +135,11 @@ export function useUpdateEpisode() {
   return useMutation({
     mutationFn: async ({
       episodeId,
+      episodeIdentifier,
       episodeData
     }: {
       episodeId: string;
+      episodeIdentifier: string;
       episodeData: EpisodeFormData;
     }): Promise<string> => {
       // Verify user is logged in and is the creator
@@ -198,13 +200,12 @@ export function useUpdateEpisode() {
         }
       }
 
-      // TODO: Get the original episode's 'd' tag identifier from the existing event
-      // For now, we'll use the episodeId as the identifier, but ideally we'd fetch the original event
-      const episodeIdentifier = `episode-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-
+      // Use the provided episode identifier to preserve the same addressable event
+      // This ensures comments and other references remain linked to the same episode
+      
       // Build tags for updated addressable podcast episode (kind 30054)
       const tags: Array<[string, ...string[]]> = [
-        ['d', episodeIdentifier], // Addressable event identifier
+        ['d', episodeIdentifier], // Preserve the original addressable event identifier
         ['title', episodeData.title], // Episode title
         ['audio', audioUrl, audioType || 'audio/mpeg'], // Audio URL with media type
         ['alt', `Updated podcast episode: ${episodeData.title}`], // NIP-31 alt tag

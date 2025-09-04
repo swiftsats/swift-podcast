@@ -202,10 +202,11 @@ export function EpisodeEditDialog({
         externalRefs: episode.externalRefs,
       };
 
-      console.log('Calling updateEpisode with:', { episodeId: episode.eventId, episodeData });
+      console.log('Calling updateEpisode with:', { episodeId: episode.eventId, episodeIdentifier: episode.identifier, episodeData });
 
       const result = await updateEpisode({
         episodeId: episode.eventId,
+        episodeIdentifier: episode.identifier,
         episodeData
       });
 
@@ -350,7 +351,7 @@ export function EpisodeEditDialog({
                 {/* Current audio info */}
                 {!audioFile && episode.audioUrl && (
                   <div className="text-xs text-muted-foreground bg-muted/50 p-2 sm:p-3 rounded">
-                    <strong>Current:</strong> 
+                    <strong>Current:</strong>
                     <span className="break-all ml-1">{episode.audioUrl}</span>
                   </div>
                 )}
