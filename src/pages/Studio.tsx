@@ -65,7 +65,7 @@ interface PodcastFormData {
     currency: string;
     recipients?: Array<{
       name: string;
-      type: 'node' | 'lightning-address';
+      type: 'node' | 'lnaddress';
       address: string;
       split: number;
       customKey?: string;
@@ -115,7 +115,7 @@ interface ExtendedPodcastMetadata {
     currency: string;
     recipients?: Array<{
       name: string;
-      type: 'node' | 'lightning-address';
+      type: 'node' | 'lnaddress';
       address: string;
       split: number;
       customKey?: string;
@@ -328,7 +328,7 @@ const Studio = () => {
     handleInputChange('funding', formData.funding.filter(f => f !== funding));
   };
 
-  const handleRecipientAdd = (recipient: { name: string; type: 'node' | 'lightning-address'; address: string; split: number; customKey?: string; customValue?: string; fee?: boolean }) => {
+  const handleRecipientAdd = (recipient: { name: string; type: 'node' | 'lnaddress'; address: string; split: number; customKey?: string; customValue?: string; fee?: boolean }) => {
     if (recipient.name && recipient.address) {
       const currentRecipients = formData.value.recipients || [];
       handleInputChange('value', {
@@ -1261,7 +1261,7 @@ const Studio = () => {
                                 className="w-full p-2 border border-input bg-background text-foreground rounded-md focus:ring-2 focus:ring-ring focus:border-ring disabled:cursor-not-allowed disabled:opacity-50"
                               >
                                 <option value="node">Lightning Node</option>
-                                <option value="lightning-address">Lightning Address</option>
+                                <option value="lnaddress">Lightning Address</option>
                               </select>
                             </div>
 
@@ -1342,7 +1342,7 @@ const Studio = () => {
                             defaultValue="node"
                           >
                             <option value="node">Lightning Node</option>
-                            <option value="lightning-address">Lightning Address</option>
+                            <option value="lnaddress">Lightning Address</option>
                           </select>
                           <Input
                             id="new-recipient-address"
@@ -1368,7 +1368,7 @@ const Studio = () => {
                             if (nameInput?.value && addressInput?.value && splitInput?.value) {
                               handleRecipientAdd({
                                 name: nameInput.value,
-                                type: typeSelect.value as 'node' | 'lightning-address',
+                                type: typeSelect.value as 'node' | 'lnaddress',
                                 address: addressInput.value,
                                 split: parseInt(splitInput.value) || 0
                               });

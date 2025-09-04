@@ -20,7 +20,7 @@ interface PodcastMetadata {
     currency: string;
     recipients?: Array<{
       name: string;
-      type: 'node' | 'lightning-address';
+      type: 'node' | 'lnaddress';
       address: string;
       split: number;
       customKey?: string;
