@@ -118,7 +118,7 @@ export const PODCAST_CONFIG: PodcastConfig = {
     explicit: import.meta.env.VITE_PODCAST_EXPLICIT === "true",
     website: import.meta.env.VITE_PODCAST_WEBSITE || "https://podstr.example",
     copyright: import.meta.env.VITE_PODCAST_COPYRIGHT || "© 2025 PODSTR Creator",
-    funding: parseArrayEnv(import.meta.env.VITE_PODCAST_FUNDING, []),
+    funding: parseArrayEnv(import.meta.env.VITE_PODCAST_FUNDING, ["/about"]),
     locked: import.meta.env.VITE_PODCAST_LOCKED === "true",
     value: {
       amount: parseInt(import.meta.env.VITE_PODCAST_VALUE_AMOUNT || "1000", 10),

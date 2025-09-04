@@ -146,9 +146,13 @@ export function generateRSSFeed(episodes: PodcastEpisode[], config?: PodcastConf
     }
     ${podcastConfig.podcast.newFeedUrl ? `<podcast:newFeedUrl>${escapeXml(podcastConfig.podcast.newFeedUrl)}</podcast:newFeedUrl>` : ''}
     ${podcastConfig.podcast.funding && podcastConfig.podcast.funding.length > 0 ?
-      podcastConfig.podcast.funding.map(funding =>
-        `<podcast:funding url="${escapeXml(funding)}">Support this podcast</podcast:funding>`
-      ).join('\n    ') :
+      podcastConfig.podcast.funding.map(funding => {
+        // Convert relative URLs to absolute URLs for RSS feed
+        const absoluteUrl = funding.startsWith('/') || funding.startsWith('./') || funding.startsWith('../') 
+          ? `${baseUrl}${funding.startsWith('/') ? funding : '/' + funding.replace(/^\.\//, '')}`
+          : funding;
+        return `<podcast:funding url="${escapeXml(absoluteUrl)}">Support this podcast</podcast:funding>`;
+      }).join('\n    ') :
       `<podcast:funding url="${escapeXml(podcastUrl)}">Support this podcast via Lightning</podcast:funding>`
     }
     ${podcastConfig.podcast.value && podcastConfig.podcast.value.amount > 0 ?

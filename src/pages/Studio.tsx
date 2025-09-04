@@ -298,8 +298,29 @@ const Studio = () => {
   };
 
   const handleFundingAdd = (funding: string) => {
-    if (funding && !formData.funding.includes(funding)) {
+    if (!funding) return;
+    
+    // Validate URL - allow both full URLs and relative paths
+    const isValidUrl = funding.startsWith('/') || funding.startsWith('./') || funding.startsWith('../');
+    if (!isValidUrl) {
+      try {
+        new URL(funding);
+      } catch {
+        toast({
+          title: 'Invalid URL',
+          description: 'Please enter a valid URL (e.g., https://example.com) or relative path (e.g., /about)',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
+    if (!formData.funding.includes(funding)) {
       handleInputChange('funding', [...formData.funding, funding]);
+      toast({
+        title: 'Funding link added',
+        description: 'The funding link has been added successfully.',
+      });
     }
   };
 
@@ -401,6 +422,23 @@ const Studio = () => {
 
       // Save podcast metadata if podcast section is being edited
       if (editingSection === 'podcast') {
+        // Convert relative funding URLs to absolute URLs for external consumption
+        const getBaseUrl = () => {
+          if (typeof window !== 'undefined') {
+            return window.location.origin;
+          }
+          return process.env.BASE_URL || 'https://podstr.example';
+        };
+        
+        const baseUrl = getBaseUrl();
+        const absoluteFundingUrls = formData.funding.map(funding => {
+          // Convert relative URLs to absolute URLs
+          if (funding.startsWith('/') || funding.startsWith('./') || funding.startsWith('../')) {
+            return `${baseUrl}${funding.startsWith('/') ? funding : '/' + funding.replace(/^\.\//, '')}`;
+          }
+          return funding;
+        });
+
         const podcastMetadataEvent = {
           kind: PODCAST_KINDS.PODCAST_METADATA, // Addressable podcast metadata event
           content: JSON.stringify({
@@ -414,7 +452,7 @@ const Studio = () => {
             explicit: formData.explicit,
             website: formData.website,
             copyright: formData.copyright,
-            funding: formData.funding,
+            funding: absoluteFundingUrls,
             locked: formData.locked,
             value: formData.value,
             type: formData.type,
@@ -1150,7 +1188,7 @@ const Studio = () => {
                     {editingSection === 'podcast' && (
                       <div className="flex space-x-2 mt-2">
                         <Input
-                          placeholder="Add funding link (e.g., lightning:address@domain.com)"
+                          placeholder="Add funding link (e.g., /about or https://patreon.com/yourpodcast)"
                           onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                               handleFundingAdd((e.target as HTMLInputElement).value);
@@ -1161,7 +1199,7 @@ const Studio = () => {
                         <Button
                           type="button"
                           onClick={() => {
-                            const input = document.querySelector('input[placeholder^="Add funding"]') as HTMLInputElement;
+                            const input = document.querySelector('input[placeholder^="Add funding link"]') as HTMLInputElement;
                             if (input?.value) {
                               handleFundingAdd(input.value);
                               input.value = '';
@@ -1174,7 +1212,7 @@ const Studio = () => {
                     )}
 
                     <p className="text-sm text-muted-foreground mt-2">
-                      Add funding links for listeners to support your podcast. Supports Lightning addresses and other payment methods.
+                      Add funding links for listeners to support your podcast. Use "/about" to link to your built-in zap page, or add external URLs to platforms like Patreon, Ko-fi, PayPal, etc.
                     </p>
                   </div>
 
