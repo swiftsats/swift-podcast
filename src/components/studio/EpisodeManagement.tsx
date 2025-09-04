@@ -14,7 +14,8 @@ import {
   Tags,
   Hash,
   AlertTriangle,
-  Plus
+  Plus,
+  Share
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { encodeEpisodeAsNaddr } from '@/lib/nip19Utils';
@@ -49,6 +50,7 @@ import type { PodcastEpisode, EpisodeSearchOptions } from '@/types/podcast';
 import { genRSSFeed } from '@/lib/rssGenerator';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { EpisodeEditDialog } from './EpisodeEditDialog';
+import { ShareEpisodeDialog } from './ShareEpisodeDialog';
 
 interface EpisodeManagementProps {
   className?: string;
@@ -66,6 +68,7 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
   });
   const [episodeToDelete, setEpisodeToDelete] = useState<PodcastEpisode | null>(null);
   const [episodeToEdit, setEpisodeToEdit] = useState<PodcastEpisode | null>(null);
+  const [episodeToShare, setEpisodeToShare] = useState<PodcastEpisode | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
 
   const { data: episodes, isLoading, error } = usePodcastEpisodes(searchOptions);
@@ -328,6 +331,10 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
                                   View Public Page
                                 </Link>
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setEpisodeToShare(episode)}>
+                                <Share className="w-4 h-4 mr-2" />
+                                Share Episode
+                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
                                   if (episode.audioUrl) {
@@ -455,6 +462,13 @@ export function EpisodeManagement({ className }: EpisodeManagementProps) {
           onSuccess={handleEpisodeUpdated}
         />
       )}
+
+      {/* Share Episode Dialog */}
+      <ShareEpisodeDialog
+        episode={episodeToShare}
+        open={!!episodeToShare}
+        onOpenChange={() => setEpisodeToShare(null)}
+      />
     </div>
   );
 }
