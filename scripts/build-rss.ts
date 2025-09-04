@@ -204,7 +204,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<strin
       <description>${escapeXml(episode.description || '')}</description>
       <link>${escapeXml(baseUrl)}/${encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier)}</link>
       <pubDate>${episode.publishDate.toUTCString()}</pubDate>
-      <guid>${episode.id}</guid>
+      <guid isPermaLink="false">${episode.authorPubkey}:${episode.identifier}</guid>
       <enclosure url="${escapeXml(episode.audioUrl)}" type="${episode.audioType}" length="0" />
       <itunes:duration>${episode.duration || 0}</itunes:duration>
       <itunes:explicit>${episode.explicit ? 'yes' : 'no'}</itunes:explicit>

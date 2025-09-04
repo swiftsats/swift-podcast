@@ -21,7 +21,7 @@ function episodeToRSSItem(episode: PodcastEpisode, config?: PodcastConfig): RSSI
     title: episode.title,
     description: episode.description || '',
     link: `${getBaseUrl()}/${encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier)}`, // Use naddr links for addressable episodes
-    guid: episode.id,
+    guid: `${episode.authorPubkey}:${episode.identifier}`, // Stable GUID that doesn't change on edits
     pubDate: episode.publishDate.toUTCString(),
     author: `${podcastConfig.podcast.email} (${podcastConfig.podcast.author})`,
     category: episode.tags,
