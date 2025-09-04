@@ -45,13 +45,12 @@ export function ShareEpisodeDialog({ episode, open, onOpenChange }: ShareEpisode
     if (!episode || !user) return;
 
     try {
-      // Create a kind 1 note (text post) referencing the episode
+      // Create a kind 1 note (root post) sharing the episode
       await createEvent({
         kind: 1,
         content: shareMessage,
         tags: [
-          ['e', episode.eventId], // Reference the episode event
-          ['p', episode.authorPubkey], // Reference the episode author
+          ['a', `30054:${episode.authorPubkey}:${episode.identifier}`], // Reference the episode as addressable event (non-reply)
           ['t', 'podcast'], // Topic tag
           ['t', 'nostr'], // Topic tag
         ]
