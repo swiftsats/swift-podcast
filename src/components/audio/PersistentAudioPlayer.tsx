@@ -47,14 +47,18 @@ export function PersistentAudioPlayer() {
   const episode = state.currentEpisode;
   const episodeNaddr = encodeEpisodeAsNaddr(episode.authorPubkey, episode.identifier);
 
-  // Create NostrEvent for social features
+  // Create NostrEvent for social features - must match the real episode event structure
+  // For addressable events (kind 30054), comments are identified by #a tag: kind:pubkey:identifier
+  // CRITICAL: Use the same identifier logic as everywhere else in the app
+  const episodeIdentifier = episode.identifier || episode.eventId;
+  
   const episodeEvent: NostrEvent = {
-    id: episode.eventId,
+    id: episode.eventId, // Real event ID from the episode
     pubkey: episode.authorPubkey,
     created_at: Math.floor(episode.createdAt.getTime() / 1000),
     kind: 30054, // Addressable podcast episode
     tags: [
-      ['d', episode.identifier], // Addressable event identifier
+      ['d', episodeIdentifier], // CRITICAL: Must match identifier logic used in EpisodePage
       ['title', episode.title],
       ['audio', episode.audioUrl, episode.audioType || 'audio/mpeg'],
       ...(episode.description ? [['description', episode.description]] : []),

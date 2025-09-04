@@ -105,7 +105,8 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
       .map(([, value]) => value);
 
     // Extract identifier from 'd' tag (for addressable events)
-    const identifier = tags.get('d')?.[0] || episodeEvent.id; // Fallback to event ID for backward compatibility
+    // CRITICAL: This must match the logic used everywhere else in the app
+    const identifier = tags.get('d')?.[0] || episodeEvent.id;
 
     return {
       id: episodeEvent.id,
@@ -352,9 +353,24 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
           {showComments && (
             <Card>
               <CardContent className="pt-6">
-                {episodeEvent ? (
+                {episode ? (
                   <CommentsSection
-                    root={episodeEvent}
+                    root={{
+                      id: episode.eventId,
+                      pubkey: episode.authorPubkey,
+                      created_at: Math.floor(episode.createdAt.getTime() / 1000),
+                      kind: 30054,
+                      tags: [
+                        ['d', episode.identifier], // Use the extracted identifier, not the raw event's d tag
+                        ['title', episode.title],
+                        ['audio', episode.audioUrl, episode.audioType || 'audio/mpeg'],
+                        ...(episode.description ? [['description', episode.description]] : []),
+                        ...(episode.imageUrl ? [['image', episode.imageUrl]] : []),
+                        ...episode.tags.map(tag => ['t', tag])
+                      ],
+                      content: episode.content || '',
+                      sig: ''
+                    }}
                     title="Episode Discussion"
                     emptyStateMessage="No comments yet"
                     emptyStateSubtitle="Be the first to share your thoughts about this episode!"
