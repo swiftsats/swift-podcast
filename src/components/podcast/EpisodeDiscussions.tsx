@@ -39,30 +39,32 @@ export function EpisodeDiscussions({ limit = 20, className }: EpisodeDiscussions
       }
 
       const signal = AbortSignal.any([c.signal, AbortSignal.timeout(10000)]);
-      const episodeIds = episodes.map(ep => ep.eventId);
 
       // Query for all kind 1111 comments that reference our episodes
+      // Episodes are addressable events (kind 30054), so we need to query by #a tags
+      const addressableTags = episodes.map(ep => `30054:${ep.authorPubkey}:${ep.identifier}`);
+      
       const commentEvents = await nostr.query([{
         kinds: [1111], // NIP-22 comments
-        '#e': episodeIds, // Comments on our episodes
+        '#a': addressableTags, // Comments on our episodes using addressable event tags
         limit: limit * 2 // Get more to account for filtering
       }], { signal });
 
-      // Create episode lookup map
-      const episodeMap = new Map(episodes.map(ep => [ep.eventId, ep]));
+      // Create episode lookup map by addressable event tag
+      const episodeMap = new Map(episodes.map(ep => [`30054:${ep.authorPubkey}:${ep.identifier}`, ep]));
 
       // Process and enrich comments with episode info
       const enrichedComments = commentEvents
         .map(comment => {
-          // Find which episode this comment is for
-          const episodeIdTag = comment.tags.find(([name]) => name === 'e')?.[1];
-          if (!episodeIdTag) return null;
+          // Find which episode this comment is for using addressable event tag
+          const addressableTag = comment.tags.find(([name]) => name === 'a')?.[1];
+          if (!addressableTag) return null;
 
-          const episode = episodeMap.get(episodeIdTag);
+          const episode = episodeMap.get(addressableTag);
 
           return {
             comment,
-            episodeId: episodeIdTag,
+            episodeId: episode?.eventId || addressableTag, // Use eventId for linking
             episodeTitle: episode?.title
           };
         })
