@@ -382,11 +382,22 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
     }
   });
 
-  // Deduplicate events by ID (in case same episode appears on multiple relays)
-  const uniqueEvents = Array.from(
-    new Map(allEvents.map(event => [event.id, event])).values()
-  );
+  // Deduplicate addressable events by 'd' tag identifier (keep only latest version)
+  const episodesByIdentifier = new Map<string, NostrEvent>();
+  
+  allEvents.forEach(event => {
+    // Get the 'd' tag identifier for addressable events
+    const identifier = event.tags.find(([name]) => name === 'd')?.[1];
+    if (!identifier) return; // Skip events without 'd' tag
+    
+    const existing = episodesByIdentifier.get(identifier);
+    // Keep the latest version (highest created_at timestamp)
+    if (!existing || event.created_at > existing.created_at) {
+      episodesByIdentifier.set(identifier, event);
+    }
+  });
 
+  const uniqueEvents = Array.from(episodesByIdentifier.values());
   console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
 
   // Convert to PodcastEpisode format
