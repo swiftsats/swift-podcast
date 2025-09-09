@@ -4,7 +4,7 @@ import { config } from 'dotenv';
 import { nip19 } from 'nostr-tools';
 import { NRelay1, NostrEvent } from '@nostrify/nostrify';
 // import { generateRSSFeed } from '../src/lib/rssGenerator.js'; // Can't import due to import.meta.env issues
-import type { PodcastEpisode } from '../src/types/podcast.js';
+import type { PodcastEpisode, PodcastTrailer } from '../src/types/podcast.js';
 
 // Import naddr encoding function
 import { encodeEpisodeAsNaddr } from '../src/lib/nip19Utils.js';
@@ -12,6 +12,7 @@ import { encodeEpisodeAsNaddr } from '../src/lib/nip19Utils.js';
 // Copied from podcastConfig.ts to avoid import.meta.env issues
 const PODCAST_KINDS = {
   EPISODE: 30054, // Addressable Podcast episodes (editable, replaceable)
+  TRAILER: 30055, // Addressable Podcast trailers (editable, replaceable)
   PODCAST_METADATA: 30078, // Podcast metadata (addressable event)
 } as const;
 
@@ -143,7 +144,7 @@ function escapeXml(unsafe: string): string {
 /**
  * Node-compatible RSS feed generation (simplified version)
  */
-function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<string, unknown>): string {
+function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[], podcastConfig: Record<string, unknown>): string {
   const baseUrl = podcastConfig.podcast.website || 'https://podstr.example';
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -197,6 +198,10 @@ function generateRSSFeed(episodes: PodcastEpisode[], podcastConfig: Record<strin
         }
       </podcast:value>` : ''
     }
+
+    ${trailers.map(trailer => 
+      `<podcast:trailer pubdate="${trailer.pubDate.toUTCString()}" url="${escapeXml(trailer.url)}"${trailer.length ? ` length="${trailer.length}"` : ''}${trailer.type ? ` type="${escapeXml(trailer.type)}"` : ''}${trailer.season ? ` season="${trailer.season}"` : ''}>${escapeXml(trailer.title)}</podcast:trailer>`
+    ).join('\n    ')}
 
     ${episodes.map(episode => `
     <item>
@@ -273,6 +278,69 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     explicit: false,
     tags: topicTags,
     externalRefs: [],
+    eventId: event.id,
+    authorPubkey: event.pubkey,
+    identifier,
+    createdAt: new Date(event.created_at * 1000),
+  };
+}
+
+/**
+ * Validates if a Nostr event is a valid podcast trailer
+ */
+function validatePodcastTrailer(event: NostrEvent, creatorPubkeyHex: string): boolean {
+  if (event.kind !== PODCAST_KINDS.TRAILER) return false;
+
+  // Check for required title tag
+  const title = event.tags.find(([name]) => name === 'title')?.[1];
+  if (!title) return false;
+
+  // Check for required URL tag
+  const url = event.tags.find(([name]) => name === 'url')?.[1];
+  if (!url) return false;
+
+  // Check for required pubdate tag
+  const pubdate = event.tags.find(([name]) => name === 'pubdate')?.[1];
+  if (!pubdate) return false;
+
+  // Verify it's from the podcast creator
+  if (event.pubkey !== creatorPubkeyHex) return false;
+
+  return true;
+}
+
+/**
+ * Converts a validated Nostr event to a PodcastTrailer object
+ */
+function eventToPodcastTrailer(event: NostrEvent): PodcastTrailer {
+  const tags = new Map(event.tags.map(([key, ...values]) => [key, values]));
+
+  const title = tags.get('title')?.[0] || 'Untitled Trailer';
+  const url = tags.get('url')?.[0] || '';
+  const pubdateStr = tags.get('pubdate')?.[0];
+  const lengthStr = tags.get('length')?.[0];
+  const type = tags.get('type')?.[0];
+  const seasonStr = tags.get('season')?.[0];
+  
+  // Parse pubdate (RFC2822 format)
+  let pubDate: Date;
+  try {
+    pubDate = pubdateStr ? new Date(pubdateStr) : new Date(event.created_at * 1000);
+  } catch {
+    pubDate = new Date(event.created_at * 1000);
+  }
+
+  // Extract identifier from 'd' tag (for addressable events)
+  const identifier = tags.get('d')?.[0] || event.id;
+
+  return {
+    id: event.id,
+    title,
+    url,
+    pubDate,
+    length: lengthStr ? parseInt(lengthStr, 10) : undefined,
+    type,
+    season: seasonStr ? parseInt(seasonStr, 10) : undefined,
     eventId: event.id,
     authorPubkey: event.pubkey,
     identifier,
@@ -405,6 +473,72 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
 }
 
 /**
+ * Fetch podcast trailers from multiple Nostr relays
+ */
+async function fetchPodcastTrailersMultiRelay(relays: Array<{url: string, relay: NRelay1}>, creatorPubkeyHex: string) {
+  console.log('📡 Fetching podcast trailers from Nostr...');
+
+  const relayPromises = relays.map(async ({url, relay}) => {
+    try {
+      const events = await Promise.race([
+        relay.query([{
+          kinds: [PODCAST_KINDS.TRAILER],
+          authors: [creatorPubkeyHex],
+          limit: 50
+        }]),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error(`Trailers query timeout for ${url}`)), 5000)
+        )
+      ]) as NostrEvent[];
+
+      const validEvents = events.filter(event => validatePodcastTrailer(event, creatorPubkeyHex));
+
+      if (validEvents.length > 0) {
+        console.log(`✅ Found ${validEvents.length} trailers from ${url}`);
+        return validEvents;
+      }
+      return [];
+    } catch (error) {
+      console.log(`⚠️ Failed to fetch trailers from ${url}:`, (error as Error).message);
+      return [];
+    }
+  });
+
+  // Wait for all relays to respond or timeout
+  const allResults = await Promise.allSettled(relayPromises);
+  const allEvents: NostrEvent[] = [];
+
+  allResults.forEach((result) => {
+    if (result.status === 'fulfilled') {
+      allEvents.push(...result.value);
+    }
+  });
+
+  // Deduplicate addressable events by 'd' tag identifier (keep only latest version)
+  const trailersByIdentifier = new Map<string, NostrEvent>();
+  
+  allEvents.forEach(event => {
+    // Get the 'd' tag identifier for addressable events
+    const identifier = event.tags.find(([name]) => name === 'd')?.[1];
+    if (!identifier) return; // Skip events without 'd' tag
+    
+    const existing = trailersByIdentifier.get(identifier);
+    // Keep the latest version (highest created_at timestamp)
+    if (!existing || event.created_at > existing.created_at) {
+      trailersByIdentifier.set(identifier, event);
+    }
+  });
+
+  const uniqueEvents = Array.from(trailersByIdentifier.values());
+  console.log(`✅ Found ${uniqueEvents.length} unique trailers from ${allResults.length} relays`);
+
+  // Convert to PodcastTrailer format and sort by pubDate (newest first)
+  return uniqueEvents
+    .map(event => eventToPodcastTrailer(event))
+    .sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+}
+
+/**
  * Fetch podcast metadata from single Nostr relay (legacy function)
  */
 async function _fetchPodcastMetadata(relay: NRelay1, creatorPubkeyHex: string) {
@@ -527,6 +661,7 @@ async function buildRSS() {
 
     let finalConfig = baseConfig;
     let episodes: PodcastEpisode[] = [];
+    let trailers: PodcastTrailer[] = [];
     let nostrMetadata: Record<string, unknown> | null = null;
 
     try {
@@ -550,15 +685,18 @@ async function buildRSS() {
       // Fetch episodes from multiple relays
       episodes = await fetchPodcastEpisodesMultiRelay(relays, creatorPubkeyHex);
 
+      // Fetch trailers from multiple relays
+      trailers = await fetchPodcastTrailersMultiRelay(relays, creatorPubkeyHex);
+
     } finally {
       // Close relay connection if needed
       console.log('🔌 Relay queries completed');
     }
 
-    console.log(`📊 Generating RSS with ${episodes.length} episodes`);
+    console.log(`📊 Generating RSS with ${episodes.length} episodes and ${trailers.length} trailers`);
 
     // Generate RSS feed with fetched data
-    const rssContent = generateRSSFeed(episodes, finalConfig);
+    const rssContent = generateRSSFeed(episodes, trailers, finalConfig);
 
     // Ensure dist directory exists
     const distDir = path.resolve('dist');
@@ -578,12 +716,14 @@ async function buildRSS() {
       endpoint: '/rss.xml',
       generatedAt: new Date().toISOString(),
       episodeCount: episodes.length,
+      trailerCount: trailers.length,
       feedSize: rssContent.length,
       environment: 'production',
       accessible: true,
       dataSource: {
         metadata: nostrMetadata ? 'nostr' : 'env',
         episodes: episodes.length > 0 ? 'nostr' : 'none',
+        trailers: trailers.length > 0 ? 'nostr' : 'none',
         relays: relayUrls
       },
       creator: baseConfig.creatorNpub

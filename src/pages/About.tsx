@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { Mail, Globe, Rss, Zap, Hash } from 'lucide-react';
+import { Mail, Globe, Rss, Zap, Hash, Play, Video, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -9,14 +9,19 @@ import { ZapDialog } from '@/components/ZapDialog';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePodcastStats } from '@/hooks/usePodcastEpisodes';
+import { usePodcastTrailers } from '@/hooks/usePodcastTrailers';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
 import { getCreatorPubkeyHex } from '@/lib/podcastConfig';
 
 const About = () => {
   const { data: stats } = usePodcastStats();
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
+  const { data: trailers } = usePodcastTrailers();
   const { user } = useCurrentUser();
   const podcastConfig = usePodcastConfig();
+  
+  // Get the most recent trailer for showcase
+  const featuredTrailer = trailers?.[0]; // Already sorted by date (newest first)
 
   useSeoMeta({
     title: `About - ${podcastConfig.podcast.title}`,
@@ -107,6 +112,103 @@ const About = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Trailer Showcase */}
+              {featuredTrailer && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Play className="w-5 h-5" />
+                      <span>Podcast Trailer</span>
+                      <Badge 
+                        variant={featuredTrailer.type?.startsWith('video/') ? "default" : "outline"}
+                        className={`text-xs ${featuredTrailer.type?.startsWith('video/') ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}`}
+                      >
+                        {featuredTrailer.type?.startsWith('video/') ? (
+                          <>
+                            <Video className="w-3 h-3 mr-1" />
+                            Video
+                          </>
+                        ) : (
+                          <>
+                            <Music className="w-3 h-3 mr-1" />
+                            Audio
+                          </>
+                        )}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-2">{featuredTrailer.title}</h3>
+                      {featuredTrailer.season && (
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Season {featuredTrailer.season} trailer
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Media Player */}
+                    <div className="space-y-3">
+                      {featuredTrailer.type?.startsWith('video/') ? (
+                        <div className="bg-black rounded-lg overflow-hidden">
+                          <video 
+                            controls 
+                            className="w-full h-auto"
+                            preload="metadata"
+                            poster="" // Could add a poster frame if available
+                          >
+                            <source src={featuredTrailer.url} type={featuredTrailer.type} />
+                            <p className="text-white p-4">
+                              Your browser doesn't support HTML5 video. 
+                              <a href={featuredTrailer.url} className="text-blue-300 underline">
+                                Download the video
+                              </a> instead.
+                            </p>
+                          </video>
+                        </div>
+                      ) : (
+                        <audio 
+                          controls 
+                          className="w-full"
+                          preload="metadata"
+                        >
+                          <source src={featuredTrailer.url} type={featuredTrailer.type || 'audio/mpeg'} />
+                          <p className="text-muted-foreground">
+                            Your browser doesn't support HTML5 audio. 
+                            <a href={featuredTrailer.url} className="text-blue-600 underline">
+                              Download the audio
+                            </a> instead.
+                          </p>
+                        </audio>
+                      )}
+                      
+                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                        <span>
+                          Published {featuredTrailer.pubDate.toLocaleDateString()}
+                        </span>
+                        {featuredTrailer.length && (
+                          <span>
+                            {featuredTrailer.length < 1024 * 1024 
+                              ? `${(featuredTrailer.length / 1024).toFixed(1)} KB`
+                              : `${(featuredTrailer.length / (1024 * 1024)).toFixed(1)} MB`
+                            }
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {trailers && trailers.length > 1 && (
+                      <div className="pt-2 border-t">
+                        <p className="text-sm text-muted-foreground">
+                          <span className="font-medium">{trailers.length} trailers</span> available. 
+                          Check out our episodes to discover more content!
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
             </div>
 

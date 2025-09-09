@@ -204,3 +204,35 @@ export interface PodcastComment {
   replies: PodcastComment[];
   event: NostrEvent;
 }
+
+/**
+ * Podcast trailer information (Podcasting 2.0)
+ * Based on https://podcasting2.org/docs/podcast-namespace/tags/trailer
+ */
+export interface PodcastTrailer {
+  id: string;
+  title: string; // Node value (max 128 chars)
+  url: string; // Audio/video file URL
+  pubDate: Date; // RFC2822 format
+  length?: number; // File size in bytes
+  type?: string; // MIME type
+  season?: number; // Optional season number
+  
+  // Nostr-specific fields
+  eventId: string;
+  authorPubkey: string;
+  identifier: string; // 'd' tag identifier
+  createdAt: Date;
+}
+
+/**
+ * Trailer form data for publishing
+ */
+export interface TrailerFormData {
+  title: string;
+  url?: string;
+  audioFile?: File;
+  audioType?: string;
+  length?: number;
+  season?: number;
+}

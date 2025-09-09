@@ -13,7 +13,8 @@ import {
   Loader2,
   User,
   DollarSign,
-  Server
+  Server,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,6 +36,7 @@ import { useUploadFile } from '@/hooks/useUploadFile';
 import { isPodcastCreator, PODCAST_CONFIG, getCreatorPubkeyHex, PODCAST_KINDS } from '@/lib/podcastConfig';
 import { genRSSFeed } from '@/lib/rssGenerator';
 import { EpisodeManagement } from '@/components/studio/EpisodeManagement';
+import { TrailerManagement } from '@/components/studio/TrailerManagement';
 import { BlossomServerManager } from '@/components/studio/BlossomServerManager';
 
 interface ProfileFormData {
@@ -646,7 +648,7 @@ const Studio = () => {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="settings" className="flex items-center space-x-2">
                 <Settings className="w-4 h-4" />
                 <span>Settings</span>
@@ -654,6 +656,10 @@ const Studio = () => {
               <TabsTrigger value="episodes" className="flex items-center space-x-2">
                 <Mic className="w-4 h-4" />
                 <span>Episodes</span>
+              </TabsTrigger>
+              <TabsTrigger value="trailers" className="flex items-center space-x-2">
+                <Play className="w-4 h-4" />
+                <span>Trailers</span>
               </TabsTrigger>
               <TabsTrigger value="blossom" className="flex items-center space-x-2">
                 <Server className="w-4 h-4" />
@@ -1398,6 +1404,11 @@ const Studio = () => {
             {/* Episodes Tab */}
             <TabsContent value="episodes" className="space-y-6">
               <EpisodeManagement />
+            </TabsContent>
+
+            {/* Trailers Tab */}
+            <TabsContent value="trailers" className="space-y-6">
+              <TrailerManagement />
             </TabsContent>
 
             {/* Blossom Media Servers Tab */}
