@@ -35,7 +35,7 @@ export function PublishTrailerForm({
   className 
 }: PublishTrailerFormProps) {
   const { user } = useCurrentUser();
-  const { mutateAsync: publishTrailer, isPending } = usePublishTrailer();
+  const { mutateAsync: publishTrailer } = usePublishTrailer();
   const { toast } = useToast();
   
   const [mediaFile, setMediaFile] = useState<File | null>(null);
@@ -166,11 +166,20 @@ export function PublishTrailerForm({
       }, 2000);
       
     } catch (error) {
+      setPublishingState('error');
+      setUploadProgress('Publishing failed. Please try again.');
+      
       toast({
         title: 'Failed to publish trailer',
         description: error instanceof Error ? error.message : 'An error occurred',
         variant: 'destructive',
       });
+
+      // Reset to idle after showing error
+      setTimeout(() => {
+        setPublishingState('idle');
+        setUploadProgress('');
+      }, 3000);
     }
   };
 
@@ -330,15 +339,81 @@ export function PublishTrailerForm({
               </div>
             </div>
 
+            {/* Progress Indicator */}
+            {publishingState !== 'idle' && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center space-x-3">
+                  {publishingState === 'uploading' || publishingState === 'publishing' ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                  ) : publishingState === 'success' ? (
+                    <CheckCircle className="w-5 h-5 text-green-600" />
+                  ) : publishingState === 'error' ? (
+                    <AlertCircle className="w-5 h-5 text-red-600" />
+                  ) : null}
+                  
+                  <div className="flex-1">
+                    <p className={`text-sm font-medium ${
+                      publishingState === 'success' ? 'text-green-800' :
+                      publishingState === 'error' ? 'text-red-800' :
+                      'text-gray-800'
+                    }`}>
+                      {uploadProgress}
+                    </p>
+                    {publishingState === 'uploading' && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        This may take a moment for larger files...
+                      </p>
+                    )}
+                    {publishingState === 'publishing' && (
+                      <p className="text-xs text-gray-600 mt-1">
+                        Broadcasting to Nostr relays...
+                      </p>
+                    )}
+                    {publishingState === 'success' && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Your trailer will appear in the RSS feed and on the about page.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Form Actions */}
             <div className="flex justify-end space-x-3">
               {onCancel && (
-                <Button type="button" variant="outline" onClick={onCancel}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onCancel}
+                  disabled={publishingState === 'uploading' || publishingState === 'publishing'}
+                >
                   Cancel
                 </Button>
               )}
-              <Button type="submit" disabled={isPending}>
-                {isPending ? 'Publishing...' : 'Publish Trailer'}
+              <Button 
+                type="submit" 
+                disabled={publishingState === 'uploading' || publishingState === 'publishing' || publishingState === 'success'}
+              >
+                {publishingState === 'uploading' && (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                )}
+                {publishingState === 'publishing' && (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Publishing...
+                  </>
+                )}
+                {publishingState === 'success' && (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Published!
+                  </>
+                )}
+                {(publishingState === 'idle' || publishingState === 'error') && 'Publish Trailer'}
               </Button>
             </div>
           </form>
