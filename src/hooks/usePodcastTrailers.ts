@@ -101,9 +101,24 @@ export function usePodcastTrailers() {
         }
       });
 
-      // Convert to PodcastTrailer format and sort by pubDate (newest first)
-      return Array.from(trailersByIdentifier.values())
-        .map(eventToPodcastTrailer)
+      // Convert to PodcastTrailer format  
+      const trailers = Array.from(trailersByIdentifier.values()).map(eventToPodcastTrailer);
+      
+      // Additional deduplication by URL + title combination (in case same content was published with different identifiers)
+      const trailersByContent = new Map<string, PodcastTrailer>();
+      
+      trailers.forEach(trailer => {
+        const contentKey = `${trailer.url}-${trailer.title}`;
+        const existing = trailersByContent.get(contentKey);
+        
+        // Keep the latest version by publication date
+        if (!existing || trailer.pubDate.getTime() > existing.pubDate.getTime()) {
+          trailersByContent.set(contentKey, trailer);
+        }
+      });
+      
+      // Sort by pubDate (newest first)
+      return Array.from(trailersByContent.values())
         .sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
     },
     staleTime: 1000 * 60 * 5, // 5 minutes

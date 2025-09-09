@@ -532,10 +532,27 @@ async function fetchPodcastTrailersMultiRelay(relays: Array<{url: string, relay:
   const uniqueEvents = Array.from(trailersByIdentifier.values());
   console.log(`✅ Found ${uniqueEvents.length} unique trailers from ${allResults.length} relays`);
 
-  // Convert to PodcastTrailer format and sort by pubDate (newest first)
-  return uniqueEvents
-    .map(event => eventToPodcastTrailer(event))
-    .sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
+  // Convert to PodcastTrailer format
+  const trailers = uniqueEvents.map(event => eventToPodcastTrailer(event));
+  
+  // Additional deduplication by URL + title combination (in case same content was published with different identifiers)
+  const trailersByContent = new Map<string, PodcastTrailer>();
+  
+  trailers.forEach(trailer => {
+    const contentKey = `${trailer.url}-${trailer.title}`;
+    const existing = trailersByContent.get(contentKey);
+    
+    // Keep the latest version by publication date
+    if (!existing || trailer.pubDate.getTime() > existing.pubDate.getTime()) {
+      trailersByContent.set(contentKey, trailer);
+    }
+  });
+  
+  const finalTrailers = Array.from(trailersByContent.values());
+  console.log(`🔄 Deduplicated to ${finalTrailers.length} unique trailers (removed ${trailers.length - finalTrailers.length} duplicates)`);
+  
+  // Sort by pubDate (newest first)
+  return finalTrailers.sort((a, b) => b.pubDate.getTime() - a.pubDate.getTime());
 }
 
 /**

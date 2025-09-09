@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Upload, Play } from 'lucide-react';
+import { Upload, Play, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,6 +39,8 @@ export function PublishTrailerForm({
   const { toast } = useToast();
   
   const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [publishingState, setPublishingState] = useState<'idle' | 'uploading' | 'publishing' | 'success' | 'error'>('idle');
+  const [uploadProgress, setUploadProgress] = useState<string>('');
 
   const form = useForm<TrailerFormValues>({
     resolver: zodResolver(trailerSchema),
@@ -98,6 +100,11 @@ export function PublishTrailerForm({
   };
 
   const onSubmit = async (data: TrailerFormValues) => {
+    // Prevent double submissions
+    if (publishingState !== 'idle') {
+      return;
+    }
+
     try {
       console.log('Trailer form submission data:', data);
       console.log('Media file:', mediaFile);
@@ -111,6 +118,15 @@ export function PublishTrailerForm({
         });
         return;
       }
+
+      // Start the publishing process
+      if (mediaFile) {
+        setPublishingState('uploading');
+        setUploadProgress(`Uploading ${mediaFile.name}...`);
+      } else {
+        setPublishingState('publishing');
+        setUploadProgress('Publishing trailer...');
+      }
       
       const trailerData: TrailerFormData = {
         ...data,
@@ -122,18 +138,32 @@ export function PublishTrailerForm({
       };
 
       console.log('Publishing trailer data:', trailerData);
+      
+      // Update progress for publishing phase
+      setPublishingState('publishing');
+      setUploadProgress('Publishing to Nostr network...');
+      
       const trailerId = await publishTrailer(trailerData);
+      
+      // Success state
+      setPublishingState('success');
+      setUploadProgress('Trailer published successfully!');
       
       toast({
         title: 'Trailer published!',
-        description: 'Your podcast trailer has been published successfully.',
+        description: 'Your podcast trailer has been published and will appear in your RSS feed.',
       });
 
-      onSuccess?.(trailerId);
-      
-      // Reset form
-      form.reset();
-      setMediaFile(null);
+      // Wait a moment to show success state, then reset
+      setTimeout(() => {
+        setPublishingState('idle');
+        setUploadProgress('');
+        onSuccess?.(trailerId);
+        
+        // Reset form
+        form.reset();
+        setMediaFile(null);
+      }, 2000);
       
     } catch (error) {
       toast({
