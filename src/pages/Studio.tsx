@@ -7,14 +7,15 @@ import {
   X,
   Upload,
   Mic,
-  Globe,
   Users,
   Zap,
   Loader2,
   User,
   DollarSign,
   Server,
-  Play
+  Play,
+  MessageSquare,
+  Repeat2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
 import { usePodcastMetadata } from '@/hooks/usePodcastMetadata';
 import { usePodcastConfig } from '@/hooks/usePodcastConfig';
+import { usePodcastAnalytics } from '@/hooks/usePodcastAnalytics';
 import { useRSSFeedGenerator } from '@/hooks/useRSSFeedGenerator';
 import { useAuthor } from '@/hooks/useAuthor';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -159,6 +161,7 @@ const Studio = () => {
   const { refetch: refetchRSSFeed } = useRSSFeedGenerator();
   const { data: creator } = useAuthor(getCreatorPubkeyHex());
   const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+  const { data: analytics, isLoading: analyticsLoading } = usePodcastAnalytics();
   const isCreator = user && isPodcastCreator(user.pubkey);
 
   const [activeTab, setActiveTab] = useState('settings');
@@ -1421,47 +1424,192 @@ const Studio = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <Users className="w-12 h-12 mx-auto mb-4 text-primary" />
-                    <div className="text-2xl font-bold">0</div>
-                    <div className="text-sm text-muted-foreground">Total Listeners</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6 text-center">
-                    <Zap className="w-12 h-12 mx-auto mb-4 text-primary" />
-                    <div className="text-2xl font-bold">0</div>
-                    <div className="text-sm text-muted-foreground">Total Zaps</div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-6 text-center">
                     <Mic className="w-12 h-12 mx-auto mb-4 text-primary" />
-                    <div className="text-2xl font-bold">0</div>
+                    <div className="text-2xl font-bold">
+                      {analyticsLoading ? '...' : analytics?.totalEpisodes || 0}
+                    </div>
                     <div className="text-sm text-muted-foreground">Episodes</div>
                   </CardContent>
                 </Card>
 
                 <Card>
                   <CardContent className="p-6 text-center">
-                    <Globe className="w-12 h-12 mx-auto mb-4 text-primary" />
-                    <div className="text-2xl font-bold">0</div>
-                    <div className="text-sm text-muted-foreground">Downloads</div>
+                    <Zap className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
+                    <div className="text-2xl font-bold">
+                      {analyticsLoading ? '...' : analytics?.totalZaps || 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Zaps</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <MessageSquare className="w-12 h-12 mx-auto mb-4 text-blue-500" />
+                    <div className="text-2xl font-bold">
+                      {analyticsLoading ? '...' : analytics?.totalComments || 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Comments</div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="p-6 text-center">
+                    <Repeat2 className="w-12 h-12 mx-auto mb-4 text-green-500" />
+                    <div className="text-2xl font-bold">
+                      {analyticsLoading ? '...' : analytics?.totalReposts || 0}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Reposts</div>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Analytics Dashboard</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground">
-                    Detailed analytics coming soon! Track your podcast performance, listener demographics, and engagement metrics.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Top Episodes */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Top Episodes by Engagement</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {analyticsLoading ? (
+                      <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="animate-pulse">
+                            <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                            <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : analytics?.topEpisodes && analytics.topEpisodes.length > 0 ? (
+                      <div className="space-y-4">
+                        {analytics.topEpisodes.slice(0, 5).map((episode, index) => (
+                          <div key={episode.episode.id} className="flex items-center space-x-3 p-3 rounded-lg bg-gray-50">
+                            <div className="flex-shrink-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                              {index + 1}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-medium truncate">
+                                {episode.episode.title}
+                              </h4>
+                              <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                                <span className="flex items-center">
+                                  <Zap className="w-3 h-3 mr-1 text-yellow-500" />
+                                  {episode.zaps}
+                                </span>
+                                <span className="flex items-center">
+                                  <MessageSquare className="w-3 h-3 mr-1 text-blue-500" />
+                                  {episode.comments}
+                                </span>
+                                <span className="flex items-center">
+                                  <Repeat2 className="w-3 h-3 mr-1 text-green-500" />
+                                  {episode.reposts}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Mic className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No episode engagement data yet.</p>
+                        <p className="text-sm">Publish episodes and engagement will appear here!</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {analyticsLoading ? (
+                      <div className="space-y-3">
+                        {[...Array(5)].map((_, i) => (
+                          <div key={i} className="animate-pulse flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
+                            <div className="flex-1">
+                              <div className="h-3 bg-gray-200 rounded w-2/3 mb-1"></div>
+                              <div className="h-2 bg-gray-200 rounded w-1/2"></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : analytics?.recentActivity && analytics.recentActivity.length > 0 ? (
+                      <div className="space-y-4">
+                        {analytics.recentActivity.slice(0, 8).map((activity, index) => (
+                          <div key={index} className="flex items-center space-x-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                              activity.type === 'zap' ? 'bg-yellow-100 text-yellow-700' :
+                              activity.type === 'comment' ? 'bg-blue-100 text-blue-700' :
+                              'bg-green-100 text-green-700'
+                            }`}>
+                              {activity.type === 'zap' ? (
+                                <Zap className="w-4 h-4" />
+                              ) : activity.type === 'comment' ? (
+                                <MessageSquare className="w-4 h-4" />
+                              ) : (
+                                <Repeat2 className="w-4 h-4" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm">
+                                <span className="font-medium">
+                                  {activity.type === 'zap' ? 'Zapped' :
+                                   activity.type === 'comment' ? 'Commented on' :
+                                   'Reposted'}
+                                </span>{' '}
+                                <span className="text-muted-foreground truncate">
+                                  {activity.episodeTitle}
+                                </span>
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {activity.timestamp.toLocaleDateString()} at {activity.timestamp.toLocaleTimeString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No recent activity yet.</p>
+                        <p className="text-sm">Listener interactions will appear here!</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Trailers Analytics */}
+              {analytics && analytics.totalTrailers > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Play className="w-5 h-5" />
+                      <span>Trailer Performance</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-blue-900">
+                            {analytics.totalTrailers} trailer{analytics.totalTrailers !== 1 ? 's' : ''} published
+                          </p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            Trailers help new listeners discover your podcast content
+                          </p>
+                        </div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {analytics.totalTrailers}
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>
