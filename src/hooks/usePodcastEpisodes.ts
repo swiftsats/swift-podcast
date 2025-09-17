@@ -62,6 +62,10 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   // Extract identifier from 'd' tag (for addressable events)
   const identifier = tags.get('d')?.[0] || event.id; // Fallback to event ID for backward compatibility
 
+  // Extract duration from tag
+  const durationStr = tags.get('duration')?.[0];
+  const duration = durationStr ? parseInt(durationStr, 10) : undefined;
+
   return {
     id: event.id,
     title,
@@ -70,7 +74,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     audioUrl,
     audioType,
     imageUrl,
-    duration: undefined, // Can be extended later if needed
+    duration,
     episodeNumber: undefined, // Can be extended later if needed
     seasonNumber: undefined, // Can be extended later if needed
     publishDate: new Date(event.created_at * 1000),

@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { useUpdateEpisode } from '@/hooks/usePublishEpisode';
 import { useToast } from '@/hooks/useToast';
+import { getAudioDuration, formatDurationHuman } from '@/lib/audioDuration';
 import type { PodcastEpisode, EpisodeFormData } from '@/types/podcast';
 
 // Schema for episode editing (similar to publish but allows empty audio URLs for existing episodes)
@@ -63,6 +64,7 @@ export function EpisodeEditDialog({
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [currentTag, setCurrentTag] = useState('');
+  const [isDetectingDuration, setIsDetectingDuration] = useState(false);
 
   const form = useForm<EpisodeEditFormValues>({
     resolver: zodResolver(episodeEditSchema),
@@ -100,9 +102,10 @@ export function EpisodeEditDialog({
     setAudioFile(null);
     setImageFile(null);
     setCurrentTag('');
+    setIsDetectingDuration(false);
   }, [episode, reset]);
 
-  const handleAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -128,10 +131,25 @@ export function EpisodeEditDialog({
       setAudioFile(file);
       setValue('audioUrl', '');
 
-      toast({
-        title: 'Audio file selected',
-        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
-      });
+      // Detect audio duration
+      setIsDetectingDuration(true);
+      try {
+        const duration = await getAudioDuration(file);
+        setValue('duration', duration);
+
+        toast({
+          title: 'Audio file selected',
+          description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB, ${formatDurationHuman(duration)})`,
+        });
+      } catch {
+        toast({
+          title: 'Audio file selected',
+          description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) - Could not detect duration. You can enter it manually.`,
+          variant: 'default',
+        });
+      } finally {
+        setIsDetectingDuration(false);
+      }
     }
   };
 
@@ -477,10 +495,19 @@ export function EpisodeEditDialog({
                         <Input
                           type="number"
                           placeholder="3600"
+                          disabled={isDetectingDuration}
                           {...field}
                           onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                         />
                       </FormControl>
+                      {isDetectingDuration && (
+                        <p className="text-sm text-muted-foreground">Detecting duration...</p>
+                      )}
+                      {field.value && (
+                        <p className="text-sm text-muted-foreground">
+                          Duration: {formatDurationHuman(field.value)}
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}

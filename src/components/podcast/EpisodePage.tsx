@@ -108,6 +108,10 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
     // CRITICAL: This must match the logic used everywhere else in the app
     const identifier = tags.get('d')?.[0] || episodeEvent.id;
 
+    // Extract duration from tag
+    const durationStr = tags.get('duration')?.[0];
+    const duration = durationStr ? parseInt(durationStr, 10) : undefined;
+
     return {
       id: episodeEvent.id,
       eventId: episodeEvent.id,
@@ -123,7 +127,7 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
       createdAt: new Date(episodeEvent.created_at * 1000),
       episodeNumber: undefined, // Can be extended later if needed
       seasonNumber: undefined, // Can be extended later if needed
-      duration: undefined, // Can be extended later if needed
+      duration,
       explicit: false, // Can be extended later if needed
       tags: topicTags,
       zapCount: 0,
