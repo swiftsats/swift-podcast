@@ -95,6 +95,11 @@ export function usePublishEpisode() {
         tags.push(['image', imageUrl]);
       }
 
+      // Add duration if provided
+      if (episodeData.duration && episodeData.duration > 0) {
+        tags.push(['duration', episodeData.duration.toString()]);
+      }
+
       // Add topic tags
       episodeData.tags.forEach(tag => {
         if (tag.trim()) {
@@ -219,6 +224,11 @@ export function useUpdateEpisode() {
 
       if (imageUrl) {
         tags.push(['image', imageUrl]);
+      }
+
+      // Add duration if provided
+      if (episodeData.duration && episodeData.duration > 0) {
+        tags.push(['duration', episodeData.duration.toString()]);
       }
 
       // Add topic tags

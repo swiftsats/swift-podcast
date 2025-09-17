@@ -15,6 +15,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { usePublishEpisode } from '@/hooks/usePublishEpisode';
 import { useToast } from '@/hooks/useToast';
 import { isPodcastCreator } from '@/lib/podcastConfig';
+import { getAudioDuration, formatDurationHuman } from '@/lib/audioDuration';
 import type { EpisodeFormData } from '@/types/podcast';
 
 const episodeSchema = z.object({
@@ -50,6 +51,7 @@ export function PublishEpisodeForm({
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [currentTag, setCurrentTag] = useState('');
+  const [isDetectingDuration, setIsDetectingDuration] = useState(false);
 
   const form = useForm<EpisodeFormValues>({
     resolver: zodResolver(episodeSchema),
@@ -80,7 +82,7 @@ export function PublishEpisodeForm({
     );
   }
 
-  const handleAudioFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAudioFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
@@ -92,7 +94,7 @@ export function PublishEpisodeForm({
         });
         return;
       }
-      
+
       // Validate file size (100MB limit)
       if (file.size > 100 * 1024 * 1024) {
         toast({
@@ -102,14 +104,29 @@ export function PublishEpisodeForm({
         });
         return;
       }
-      
+
       setAudioFile(file);
       setValue('audioUrl', '');
-      
-      toast({
-        title: 'Audio file selected',
-        description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB)`,
-      });
+
+      // Detect audio duration
+      setIsDetectingDuration(true);
+      try {
+        const duration = await getAudioDuration(file);
+        setValue('duration', duration);
+
+        toast({
+          title: 'Audio file selected',
+          description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB, ${formatDurationHuman(duration)})`,
+        });
+      } catch {
+        toast({
+          title: 'Audio file selected',
+          description: `${file.name} (${(file.size / 1024 / 1024).toFixed(1)}MB) - Could not detect duration. You can enter it manually.`,
+          variant: 'default',
+        });
+      } finally {
+        setIsDetectingDuration(false);
+      }
     }
   };
 
@@ -434,13 +451,22 @@ export function PublishEpisodeForm({
                   <FormItem>
                     <FormLabel>Duration (seconds)</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
+                      <Input
+                        type="number"
                         placeholder="3600"
+                        disabled={isDetectingDuration}
                         {...field}
                         onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
                       />
                     </FormControl>
+                    {isDetectingDuration && (
+                      <p className="text-sm text-muted-foreground">Detecting duration...</p>
+                    )}
+                    {field.value && (
+                      <p className="text-sm text-muted-foreground">
+                        Duration: {formatDurationHuman(field.value)}
+                      </p>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}

@@ -142,6 +142,21 @@ function escapeXml(unsafe: string): string {
 }
 
 /**
+ * Format duration in seconds to HH:MM:SS format for iTunes RSS
+ */
+function formatDurationForRSS(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  } else {
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+}
+
+/**
  * Node-compatible RSS feed generation (simplified version)
  */
 function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[], podcastConfig: Record<string, unknown>): string {
@@ -211,7 +226,7 @@ function generateRSSFeed(episodes: PodcastEpisode[], trailers: PodcastTrailer[],
       <pubDate>${episode.publishDate.toUTCString()}</pubDate>
       <guid isPermaLink="false">${episode.authorPubkey}:${episode.identifier}</guid>
       <enclosure url="${escapeXml(episode.audioUrl)}" type="${episode.audioType}" length="0" />
-      <itunes:duration>${episode.duration || 0}</itunes:duration>
+      <itunes:duration>${episode.duration ? formatDurationForRSS(episode.duration) : '00:00'}</itunes:duration>
       <itunes:explicit>${episode.explicit ? 'yes' : 'no'}</itunes:explicit>
       ${episode.imageUrl ? `<itunes:image href="${escapeXml(episode.imageUrl)}" />` : ''}
       ${episode.content ? `<content:encoded><![CDATA[${episode.content}]]></content:encoded>` : ''}
@@ -263,6 +278,10 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   // Extract identifier from 'd' tag (for addressable events)
   const identifier = tags.get('d')?.[0] || event.id; // Fallback to event ID for backward compatibility
 
+  // Extract duration from tag
+  const durationStr = tags.get('duration')?.[0];
+  const duration = durationStr ? parseInt(durationStr, 10) : undefined;
+
   return {
     id: event.id,
     title,
@@ -271,7 +290,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     audioUrl,
     audioType,
     imageUrl,
-    duration: undefined,
+    duration,
     episodeNumber: undefined,
     seasonNumber: undefined,
     publishDate: new Date(event.created_at * 1000),
