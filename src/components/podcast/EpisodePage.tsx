@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { NoteContent } from '@/components/NoteContent';
 import { EpisodeActions } from './EpisodeActions';
 import { CommentsSection } from '@/components/comments/CommentsSection';
-import { Navigation } from '@/components/Navigation';
+import { Layout } from '@/components/Layout';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useNostr } from '@nostrify/react';
@@ -154,10 +154,8 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto space-y-6">
             <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -190,17 +188,15 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
               </CardContent>
             </Card>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   if (!episode) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navigation />
-
-        <main className="container mx-auto px-4 py-8">
+      <Layout>
+        <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
             <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
               <ArrowLeft className="w-4 h-4 mr-2" />
@@ -219,16 +215,14 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
               </CardContent>
             </Card>
           </div>
-        </main>
-      </div>
+        </div>
+      </Layout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navigation />
-
-      <main className="container mx-auto px-4 py-8">
+    <Layout>
+      <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <Button variant="ghost" onClick={() => navigate(-1)} className="mb-4">
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -385,7 +379,7 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
             </Card>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+    </Layout>
   );
 }
