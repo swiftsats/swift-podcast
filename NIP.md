@@ -23,6 +23,7 @@ A `kind 30054` event represents a podcast episode. These are addressable events 
 - `d` - A unique identifier for this episode (addressable event identifier)
 - `title` - The episode title
 - `audio` - The audio URL, with optional media type as second parameter (e.g., `["audio", "https://example.com/episode.mp3", "audio/mpeg"]`)
+- `pubdate` - Publication date in RFC2822 format (set once when first published, preserved during edits)
 - `alt` - A human-readable description of the event per NIP-31
 
 #### Optional Tags
@@ -47,6 +48,7 @@ The content field MAY contain additional episode notes or description text.
     ["d", "episode-1699123456-abc123def"],
     ["title", "The Future of Decentralized Social Media"],
     ["audio", "https://example.com/episodes/episode-001.mp3", "audio/mpeg"],
+    ["pubdate", "Thu, 04 Nov 2023 12:00:00 GMT"],
     ["alt", "Podcast episode: The Future of Decentralized Social Media"],
     ["description", "A deep dive into how protocols like Nostr are changing social media"],
     ["image", "https://example.com/artwork/episode-001.jpg"],

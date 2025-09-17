@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNostr } from '@nostrify/react';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useUploadFile } from '@/hooks/useUploadFile';
@@ -83,6 +84,7 @@ export function usePublishEpisode() {
         ['d', episodeIdentifier], // Addressable event identifier
         ['title', episodeData.title], // Episode title
         ['audio', audioUrl, audioType || 'audio/mpeg'], // Audio URL with media type
+        ['pubdate', new Date().toUTCString()], // RFC2822 format - set once when first published
         ['alt', `Podcast episode: ${episodeData.title}`] // NIP-31 alt tag
       ];
 
@@ -135,6 +137,7 @@ export function useUpdateEpisode() {
   const { user } = useCurrentUser();
   const { mutateAsync: createEvent } = useNostrPublish();
   const { mutateAsync: uploadFile } = useUploadFile();
+  const { nostr } = useNostr();
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -207,12 +210,31 @@ export function useUpdateEpisode() {
 
       // Use the provided episode identifier to preserve the same addressable event
       // This ensures comments and other references remain linked to the same episode
-      
+
+      // Fetch the original episode to preserve its publication date
+      let originalPubdate: string | undefined;
+      try {
+        const originalEvents = await nostr.query([{
+          ids: [episodeId]
+        }], { signal: AbortSignal.timeout(5000) });
+
+        const originalEvent = originalEvents[0];
+        if (originalEvent) {
+          originalPubdate = originalEvent.tags.find(([name]) => name === 'pubdate')?.[1];
+        }
+      } catch (error) {
+        console.warn('Could not fetch original episode for pubdate preservation:', error);
+      }
+
+      // Fallback to current time if no original pubdate found (for episodes created before this feature)
+      const pubdate = originalPubdate || new Date().toUTCString();
+
       // Build tags for updated addressable podcast episode (kind 30054)
       const tags: Array<[string, ...string[]]> = [
         ['d', episodeIdentifier], // Preserve the original addressable event identifier
         ['title', episodeData.title], // Episode title
         ['audio', audioUrl, audioType || 'audio/mpeg'], // Audio URL with media type
+        ['pubdate', pubdate], // Preserve original publication date
         ['alt', `Updated podcast episode: ${episodeData.title}`], // NIP-31 alt tag
         ['edit', episodeId] // Reference to the original event being edited
       ];

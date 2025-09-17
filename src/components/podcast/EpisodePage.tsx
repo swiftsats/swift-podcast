@@ -112,6 +112,15 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
     const durationStr = tags.get('duration')?.[0];
     const duration = durationStr ? parseInt(durationStr, 10) : undefined;
 
+    // Extract publication date from pubdate tag with fallback to created_at
+    const pubdateStr = tags.get('pubdate')?.[0];
+    let publishDate: Date;
+    try {
+      publishDate = pubdateStr ? new Date(pubdateStr) : new Date(episodeEvent.created_at * 1000);
+    } catch {
+      publishDate = new Date(episodeEvent.created_at * 1000);
+    }
+
     return {
       id: episodeEvent.id,
       eventId: episodeEvent.id,
@@ -123,7 +132,7 @@ export function EpisodePage({ eventId, addressableEvent }: EpisodePageProps) {
       audioUrl,
       audioType,
       imageUrl,
-      publishDate: new Date(episodeEvent.created_at * 1000),
+      publishDate,
       createdAt: new Date(episodeEvent.created_at * 1000),
       episodeNumber: undefined, // Can be extended later if needed
       seasonNumber: undefined, // Can be extended later if needed

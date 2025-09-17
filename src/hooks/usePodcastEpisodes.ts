@@ -66,6 +66,15 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
   const durationStr = tags.get('duration')?.[0];
   const duration = durationStr ? parseInt(durationStr, 10) : undefined;
 
+  // Extract publication date from pubdate tag with fallback to created_at
+  const pubdateStr = tags.get('pubdate')?.[0];
+  let publishDate: Date;
+  try {
+    publishDate = pubdateStr ? new Date(pubdateStr) : new Date(event.created_at * 1000);
+  } catch {
+    publishDate = new Date(event.created_at * 1000);
+  }
+
   return {
     id: event.id,
     title,
@@ -77,7 +86,7 @@ function eventToPodcastEpisode(event: NostrEvent): PodcastEpisode {
     duration,
     episodeNumber: undefined, // Can be extended later if needed
     seasonNumber: undefined, // Can be extended later if needed
-    publishDate: new Date(event.created_at * 1000),
+    publishDate,
     explicit: false, // Can be extended later if needed
     tags: topicTags,
     externalRefs: [],
