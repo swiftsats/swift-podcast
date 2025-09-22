@@ -1,5 +1,5 @@
 import { useSeoMeta } from '@unhead/react';
-import { Mail, Globe, Rss, Zap, Hash, Play, Video, Music } from 'lucide-react';
+import { Mail, Globe, Rss, Zap, Hash, Play, Video, Music, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -42,7 +42,10 @@ const About = () => {
               {/* Podcast Description */}
               <Card>
                 <CardHeader>
-                  <CardTitle>About the Show</CardTitle>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Info className="w-5 h-5" />
+                    <span>About</span>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {podcastConfig.podcast.image && (
@@ -119,23 +122,7 @@ const About = () => {
                   <CardHeader>
                     <CardTitle className="flex items-center space-x-2">
                       <Play className="w-5 h-5" />
-                      <span>Podcast Trailer</span>
-                      <Badge 
-                        variant={featuredTrailer.type?.startsWith('video/') ? "default" : "outline"}
-                        className={`text-xs ${featuredTrailer.type?.startsWith('video/') ? 'bg-blue-100 text-blue-800 border-blue-200' : ''}`}
-                      >
-                        {featuredTrailer.type?.startsWith('video/') ? (
-                          <>
-                            <Video className="w-3 h-3 mr-1" />
-                            Video
-                          </>
-                        ) : (
-                          <>
-                            <Music className="w-3 h-3 mr-1" />
-                            Audio
-                          </>
-                        )}
-                      </Badge>
+                      <span>Trailer</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -183,18 +170,10 @@ const About = () => {
                         </audio>
                       )}
                       
-                      <div className="flex justify-between items-center text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground">
                         <span>
                           Published {featuredTrailer.pubDate.toLocaleDateString()}
                         </span>
-                        {featuredTrailer.length && (
-                          <span>
-                            {featuredTrailer.length < 1024 * 1024 
-                              ? `${(featuredTrailer.length / 1024).toFixed(1)} KB`
-                              : `${(featuredTrailer.length / (1024 * 1024)).toFixed(1)} MB`
-                            }
-                          </span>
-                        )}
                       </div>
                     </div>
 
@@ -218,7 +197,7 @@ const About = () => {
               {stats && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Podcast Stats</CardTitle>
+                    <CardTitle>Stats</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4 text-center">
