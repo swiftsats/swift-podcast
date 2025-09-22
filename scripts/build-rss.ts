@@ -496,8 +496,10 @@ async function fetchPodcastEpisodesMultiRelay(relays: Array<{url: string, relay:
   const uniqueEvents = Array.from(episodesByIdentifier.values());
   console.log(`✅ Found ${uniqueEvents.length} unique episodes from ${allResults.length} relays`);
 
-  // Convert to PodcastEpisode format
-  return uniqueEvents.map(event => eventToPodcastEpisode(event));
+  // Convert to PodcastEpisode format and sort by publishDate (newest first)
+  const episodes = uniqueEvents.map(event => eventToPodcastEpisode(event));
+
+  return episodes.sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
 }
 
 /**

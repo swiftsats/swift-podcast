@@ -140,8 +140,14 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
         if (originalEvents.has(event.id)) return;
 
         const existing = episodesByTitle.get(title);
-        if (!existing || event.created_at > existing.created_at) {
+        if (!existing) {
           episodesByTitle.set(title, event);
+        } else {
+          // Keep the event with the latest created_at (most recent edit)
+          // This ensures we get the latest content while preserving pubdate for sorting
+          if (event.created_at > existing.created_at) {
+            episodesByTitle.set(title, event);
+          }
         }
       });
 
@@ -192,6 +198,7 @@ export function usePodcastEpisodes(options: EpisodeSearchOptions = {}) {
           ...(zaps && zaps.totalSats > 0 ? { totalSats: zaps.totalSats } : {})
         };
       });
+
 
       // Apply search filtering
       let filteredEpisodes = episodesWithZaps;
@@ -276,10 +283,11 @@ export function usePodcastEpisode(episodeId: string) {
 
 /**
  * Hook to get the latest episode
+ * Uses the same query as the Recent Episodes section to ensure cache consistency
  */
 export function useLatestEpisode() {
   const { data: episodes, ...rest } = usePodcastEpisodes({
-    limit: 1,
+    limit: 50, // Use a reasonable default that covers most use cases
     sortBy: 'date',
     sortOrder: 'desc'
   });
