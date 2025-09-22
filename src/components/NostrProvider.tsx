@@ -10,7 +10,7 @@ interface NostrProviderProps {
 
 function NostrProvider(props: NostrProviderProps) {
   const { children } = props;
-  const { config, presetRelays } = useAppContext();
+  const { config } = useAppContext();
 
   const queryClient = useQueryClient();
 
@@ -20,9 +20,24 @@ function NostrProvider(props: NostrProviderProps) {
   // Use refs so the pool always has the latest data
   const relayUrl = useRef<string>(config.relayUrl);
 
+  // Define multiple relays for better data coverage (matches RSS script)
+  // This ensures consistent data across all parts of the app
+  const multiRelayUrls = useRef<string[]>([
+    'wss://relay.primal.net',
+    'wss://relay.nostr.band',
+    'wss://relay.damus.io',
+    'wss://relay.ditto.pub'
+    // Note: nos.lol removed to match RSS script and improve performance
+  ]);
+
   // Update refs when config changes
   useEffect(() => {
     relayUrl.current = config.relayUrl;
+    // Ensure selected relay is first in the list for priority
+    multiRelayUrls.current = [
+      config.relayUrl,
+      ...multiRelayUrls.current.filter(url => url !== config.relayUrl)
+    ].slice(0, 4); // Limit to 4 relays max for performance
     queryClient.resetQueries();
   }, [config.relayUrl, queryClient]);
 
@@ -33,22 +48,17 @@ function NostrProvider(props: NostrProviderProps) {
         return new NRelay1(url);
       },
       reqRouter(filters) {
-        return new Map([[relayUrl.current, filters]]);
+        // Query multiple relays for better data coverage and consistency
+        // NPool automatically deduplicates results from multiple relays
+        const relayMap = new Map();
+        multiRelayUrls.current.forEach(url => {
+          relayMap.set(url, filters);
+        });
+        return relayMap;
       },
       eventRouter(_event: NostrEvent) {
-        // Publish to the selected relay
-        const allRelays = new Set<string>([relayUrl.current]);
-
-        // Also publish to the preset relays, capped to 5
-        for (const { url } of (presetRelays ?? [])) {
-          allRelays.add(url);
-
-          if (allRelays.size >= 5) {
-            break;
-          }
-        }
-
-        return [...allRelays];
+        // Publish to all configured relays for better distribution
+        return multiRelayUrls.current;
       },
     });
   }
