@@ -72,7 +72,7 @@ export function Comment({ root, comment, depth = 0, maxDepth = 3, limit }: Comme
             </div>
 
             {/* Comment Content */}
-            <div className="text-sm">
+            <div className="text-sm overflow-hidden">
               <NoteContent event={comment} className="text-sm" />
             </div>
 

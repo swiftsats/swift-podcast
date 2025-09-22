@@ -48,15 +48,19 @@ export function NoteContent({
           // Don't add anything to parts - completely skip media URLs
         } else {
           // Handle URLs
+          // Truncate very long URLs for display while keeping full URL in href
+          const displayUrl = url.length > 60 ? `${url.slice(0, 60)}...` : url;
+
           parts.push(
             <a
               key={`url-${keyCounter++}`}
               href={url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline"
+              className="text-blue-500 hover:underline break-all inline-block max-w-full"
+              title={url} // Show full URL on hover
             >
-              {url}
+              {displayUrl}
             </a>
           );
         }
@@ -123,7 +127,7 @@ export function NoteContent({
   }, [event]);
 
   return (
-    <div className={cn("whitespace-pre-wrap break-words", className)}>
+    <div className={cn("whitespace-pre-wrap break-words overflow-hidden", className)}>
       {content.length > 0 ? content : event.content}
     </div>
   );

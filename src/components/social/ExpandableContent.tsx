@@ -46,7 +46,7 @@ export function ExpandableContent({
       {/* Content */}
       <div className="space-y-3">
         {displayEvent.content ? (
-          <div className="prose prose-sm max-w-none">
+          <div className="prose prose-sm max-w-none overflow-hidden">
             <NoteContent event={displayEvent} className="text-sm" />
           </div>
         ) : (

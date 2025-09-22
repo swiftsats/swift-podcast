@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { ZapButton } from '@/components/ZapButton';
+import { NoteContent } from '@/components/NoteContent';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useNostrPublish } from '@/hooks/useNostrPublish';
 import { useToast } from '@/hooks/useToast';
@@ -438,10 +439,10 @@ export function PostActions({ event, className }: PostActionsProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="bg-muted p-3 rounded-lg">
-              <p className="text-sm text-muted-foreground line-clamp-3">
-                {event.content}
-              </p>
+            <div className="bg-muted p-3 rounded-lg overflow-hidden">
+              <div className="text-sm text-muted-foreground line-clamp-3">
+                <NoteContent event={event} className="text-sm text-muted-foreground" />
+              </div>
             </div>
 
             <Textarea
