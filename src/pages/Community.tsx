@@ -25,9 +25,9 @@ const Community = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="max-w-4xl mx-auto">
             {/* Main Content */}
-            <div className="lg:col-span-3">
+            <div>
               <Tabs defaultValue="activity" className="space-y-6">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="activity" className="flex items-center space-x-2">
@@ -77,78 +77,6 @@ const Community = () => {
                   </Card>
                 </TabsContent>
               </Tabs>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Community Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Community Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold">🚧</div>
-                    <div className="text-sm text-muted-foreground mt-2">
-                      Community metrics will appear here as engagement grows
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* How to Engage */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">How to Engage</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start space-x-3">
-                      <MessageCircle className="w-4 h-4 mt-1 text-blue-500" />
-                      <div>
-                        <p className="font-medium">Comment on Episodes</p>
-                        <p className="text-muted-foreground">Share your thoughts on individual episodes</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3">
-                      <TrendingUp className="w-4 h-4 mt-1 text-green-500" />
-                      <div>
-                        <p className="font-medium">Zap Episodes</p>
-                        <p className="text-muted-foreground">Support the creator with Lightning tips</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-start space-x-3">
-                      <Users className="w-4 h-4 mt-1 text-purple-500" />
-                      <div>
-                        <p className="font-medium">Join the Leaderboard</p>
-                        <p className="text-muted-foreground">Become a top supporter</p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Nostr Info */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">Powered by Nostr</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 text-sm">
-                    <p className="text-muted-foreground">
-                      This community runs on the Nostr protocol, ensuring:
-                    </p>
-                    <ul className="space-y-2 text-muted-foreground">
-                      <li>• Censorship resistance</li>
-                      <li>• User ownership of data</li>
-                      <li>• Cross-platform compatibility</li>
-                      <li>• Lightning-native payments</li>
-                    </ul>
-                  </div>
-                </CardContent>
-              </Card>
             </div>
           </div>
         </div>
