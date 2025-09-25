@@ -125,17 +125,8 @@ export function useZaps(
       return;
     }
 
-    console.log('Zap attempt:', {
-      targetId: actualTarget.id,
-      targetPubkey: actualTarget.pubkey,
-      targetKind: actualTarget.kind,
-      amount,
-      authorData: author.data ? 'available' : 'not available',
-      actualTarget: actualTarget
-    });
-
     try {
-      if (!author.data || !author.data?.metadata) {
+      if (!author.data || !author.data?.metadata || !author.data?.event ) {
         toast({
           title: 'Author not found',
           description: 'Could not find the author of this item.',
@@ -156,37 +147,8 @@ export function useZaps(
         return;
       }
 
-      // Get zap endpoint - handle case where event might not be available yet
-      let zapEndpoint;
-      try {
-        if (author.data.event) {
-          zapEndpoint = await nip57.getZapEndpoint(author.data.event);
-        } else {
-          // Fallback: try to get zap endpoint from lightning address directly
-          const lnAddress = lud16 || lud06;
-          if (!lnAddress) {
-            throw new Error('No lightning address available');
-          }
-
-          // Extract domain from lightning address
-          const [username, domain] = lnAddress.split('@');
-          if (!username || !domain) {
-            throw new Error('Invalid lightning address format');
-          }
-
-          zapEndpoint = `https://${domain}/.well-known/lnurlp/${username}`;
-        }
-      } catch (error) {
-        console.warn('Failed to get zap endpoint:', error);
-        toast({
-          title: 'Zap endpoint not found',
-          description: 'Could not find a zap endpoint for the author.',
-          variant: 'destructive',
-        });
-        setIsZapping(false);
-        return;
-      }
-
+      // Get zap endpoint using the old reliable method
+      const zapEndpoint = await nip57.getZapEndpoint(author.data.event);
       if (!zapEndpoint) {
         toast({
           title: 'Zap endpoint not found',
@@ -199,75 +161,24 @@ export function useZaps(
 
       const zapAmount = amount * 1000; // convert to millisats
 
-      // Create zap request manually according to NIP-57
-      let zapRequest;
-      try {
-        const zapRequestParams = {
-          pubkey: actualTarget.pubkey,
-          amount: zapAmount,
-          relays: [config.relayUrl],
-          event: actualTarget.id,
-          content: _comment || 'Zapped!🎙️'
-        };
-
-        console.log('Creating zap request with params:', zapRequestParams);
-
-        // Try to create with nip57 first
-        try {
-          zapRequest = nip57.makeZapRequest(zapRequestParams);
-          console.log('Zap request created successfully with nip57:', zapRequest);
-        } catch (nip57Error) {
-          console.warn('nip57.makeZapRequest failed, trying manual creation:', nip57Error);
-
-          // Manual creation according to NIP-57
-          const tags = [
-            ['p', actualTarget.pubkey],
-            ['amount', zapAmount.toString()],
-            ['relays', config.relayUrl],
-            ['e', actualTarget.id]
-          ];
-
-          // Add comment if provided
-          if (_comment && _comment.trim()) {
-            tags.push(['comment', _comment.trim()]);
-          }
-
-          zapRequest = {
-            kind: 9734,
-            created_at: Math.floor(Date.now() / 1000),
-            content: _comment || 'Zapped!🎙️',
-            tags: tags
-          };
-
-          console.log('Manually created zap request:', zapRequest);
-        }
-      } catch (error) {
-        console.error('Failed to create zap request:', error);
-        console.error('Error details:', {
-          targetPubkey: actualTarget.pubkey,
-          targetId: actualTarget.id,
-          amount: zapAmount,
-          relays: [config.relayUrl]
-        });
-        throw new Error(`Failed to create zap request: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      }
+      // Create zap request using EventZap type - pass the full event object
+      // The newer version of nip57.makeZapRequest will handle addressable vs regular events properly
+      const zapRequest = nip57.makeZapRequest({
+        event: actualTarget,
+        amount: zapAmount,
+        relays: [config.relayUrl],
+        comment: _comment || 'Zapped!🎙️'
+      });
 
       // Sign the zap request (but don't publish to relays - only send to LNURL endpoint)
       if (!user.signer) {
         throw new Error('No signer available');
       }
-
-      let signedZapRequest;
-      try {
-        signedZapRequest = await user.signer.signEvent(zapRequest);
-      } catch (error) {
-        console.error('Failed to sign zap request:', error);
-        throw new Error('Failed to sign zap request');
-      }
+      const signedZapRequest = await user.signer.signEvent(zapRequest);
 
       try {
         const res = await fetch(`${zapEndpoint}?amount=${zapAmount}&nostr=${encodeURI(JSON.stringify(signedZapRequest))}`);
-            const responseData = await res.json();
+        const responseData = await res.json();
 
             if (!res.ok) {
               throw new Error(`HTTP ${res.status}: ${responseData.reason || 'Unknown error'}`);
