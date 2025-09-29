@@ -1,0 +1,23 @@
+{
+  "status": "ok",
+  "endpoint": "/rss.xml",
+  "generatedAt": "2025-09-29T15:11:15.306Z",
+  "episodeCount": 0,
+  "trailerCount": 0,
+  "feedSize": 1829,
+  "environment": "production",
+  "accessible": true,
+  "dataSource": {
+    "metadata": "env",
+    "episodes": "none",
+    "trailers": "none",
+    "relays": [
+      "wss://relay.primal.net",
+      "wss://relay.nostr.band",
+      "wss://relay.damus.io",
+      "wss://nos.lol",
+      "wss://relay.ditto.pub"
+    ]
+  },
+  "creator": "npub1p7hcy69zcwn8kdvhtetcn3mdqe4lvk533nknq2p7wt4j7t52233q0fvurj"
+}
